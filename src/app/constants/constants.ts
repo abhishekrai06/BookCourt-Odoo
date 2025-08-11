@@ -11,6 +11,8 @@ export enum ApiNames {
 	Login = "login",
 	Signup = "signup",
 	Venue = "venues",
+	DashboardStats = "dashboard-stats",
+	Booking = "booking",
 }
 
 export class Constants {

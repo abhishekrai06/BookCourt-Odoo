@@ -88,7 +88,7 @@ const AddVenueDialogBox: React.FC<{
 					city: venue.city,
 					startingPricePerHour: venue.startingPricePerHour,
 					courts:
-						venue.court?.map((court) => ({
+						venue.courts?.map((court) => ({
 							name: court.name,
 							sport: court.sport as "BADMINTON" | "FOOTBALL" | "TENNIS" | "TABLE_TENNIS" | "CRICKET",
 							pricePerHour: court.pricePerHour,
@@ -136,7 +136,7 @@ const AddVenueDialogBox: React.FC<{
 			if (venue) {
 				const filteredCourts = values.courts?.filter((c) => c.name && c.name.trim() !== "") || [];
 				const mappedCourts = filteredCourts.map((court, idx) => {
-					const existingCourt = venue.court?.[idx];
+					const existingCourt = venue.courts?.[idx];
 					return {
 						id: existingCourt?.id ?? "",
 						facilityId: existingCourt?.facilityId ?? venue.id,
@@ -188,7 +188,7 @@ const AddVenueDialogBox: React.FC<{
 								city: result.data[0].city,
 								startingPricePerHour: result.data[0].startingPricePerHour,
 								courts:
-									result.data[0].court?.map((court) => ({
+									result.data[0].courts?.map((court) => ({
 										name: court.name,
 										sport: court.sport as "BADMINTON" | "FOOTBALL" | "TENNIS" | "TABLE_TENNIS" | "CRICKET",
 										pricePerHour: court.pricePerHour,

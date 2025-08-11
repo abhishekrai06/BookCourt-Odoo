@@ -3,9 +3,7 @@ import { paths } from "@/paths";
 
 export const navItems = [
 	{ key: "overview", title: "Overview", href: paths.dashboard.overview, icon: "chart-pie" },
-	{ key: "venues", title: "Venues", href: paths.dashboard.customers, icon: "users" },
-	{ key: "integrations", title: "Integrations", href: paths.dashboard.integrations, icon: "plugs-connected" },
+	{ key: "venues", title: "Venues", href: paths.dashboard.venues, icon: "users" },
+	{ key: "bookings", title: "Bookings", href: paths.dashboard.bookings, icon: "calendar" },
 	{ key: "settings", title: "Settings", href: paths.dashboard.settings, icon: "gear-six" },
-	{ key: "account", title: "Account", href: paths.dashboard.account, icon: "user" },
-	{ key: "error", title: "Error", href: paths.errors.notFound, icon: "x-square" },
 ] satisfies NavItemConfig[];

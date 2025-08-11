@@ -194,7 +194,7 @@ export function VenuesTable(): React.JSX.Element {
 							</TableHead>
 							<TableBody>
 								{data.map((venue) => {
-									const hasCourts = Array.isArray(venue.court) && venue.court.length > 0;
+									const hasCourts = Array.isArray(venue.courts) && venue.courts.length > 0;
 									return (
 										<React.Fragment key={venue.id}>
 											<TableRow hover>
@@ -238,7 +238,7 @@ export function VenuesTable(): React.JSX.Element {
 																		</TableRow>
 																	</TableHead>
 																	<TableBody>
-																		{venue.court!.map((court) => (
+																		{venue.courts!.map((court) => (
 																			<TableRow key={court.id}>
 																				<TableCell>{court.name}</TableCell>
 																				<TableCell>{court.sport}</TableCell>
