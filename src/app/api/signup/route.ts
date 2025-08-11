@@ -1,6 +1,9 @@
+import crypto from "crypto";
+
 import { NextRequest, NextResponse } from "next/server";
 import { ServerCodes } from "@/app/constants/constants";
 import bcrypt from "bcrypt";
+import nodemailer from "nodemailer";
 
 import { ApiResponse } from "@/types/api-response";
 import prisma from "@/lib/prisma";
@@ -50,6 +53,8 @@ export async function POST(request: NextRequest) {
 		}
 		const { fullName, email, password, role } = value;
 		const hashedPassword = await bcrypt.hash(password, 10);
+		// Generate a random verification token
+		const verificationToken = crypto.randomBytes(32).toString("hex");
 		const newUser = await prisma.user.create({
 			data: {
 				fullName,
@@ -58,10 +63,28 @@ export async function POST(request: NextRequest) {
 				createdAt: Math.floor(Date.now() / 1000),
 				updatedAt: Math.floor(Date.now() / 1000),
 				role,
+				verificationToken,
 			},
 		});
+
+		// Send verification email
+		const transporter = nodemailer.createTransport({
+			service: "gmail",
+			auth: {
+				user: process.env.NEXT_PUBLIC_EMAIL_USER,
+				pass: process.env.NEXT_PUBLIC_EMAIL_PASS,
+			},
+		});
+		const verifyUrl = `${process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:3000"}/api/verify-email?token=${verificationToken}`;
+		await transporter.sendMail({
+			from: process.env.NEXT_PUBLIC_EMAIL_USER || "no-reply@bookcourt.com",
+			to: email,
+			subject: "Verify your email address",
+			html: `<p>Hi ${fullName},</p><p>Thank you for signing up. Please verify your email by clicking the link below:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`,
+		});
+
 		response.code = ServerCodes.Success;
-		response.message = "User added successfully";
+		response.message = "User added successfully. Please check your email to verify your account.";
 		response.data = [newUser];
 		return NextResponse.json(response, { status: 200 });
 	} catch (error) {
