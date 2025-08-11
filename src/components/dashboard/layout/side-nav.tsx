@@ -3,6 +3,7 @@
 import * as React from "react";
 import RouterLink from "next/link";
 import { usePathname } from "next/navigation";
+import CopyrightIcon from "@mui/icons-material/Copyright";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
@@ -62,6 +63,20 @@ export function SideNav(): React.JSX.Element {
 			<Box component="nav" sx={{ flex: "1 1 auto", p: "12px" }}>
 				{renderNavItems({ pathname, items: navItems })}
 			</Box>
+			<Divider sx={{ borderColor: "var(--mui-palette-neutral-700)" }} />
+			<Stack spacing={2} sx={{ p: "12px" }}>
+				<Typography color="var(--mui-palette-neutral-400)" align="center" variant="body1">
+					Book Court
+				</Typography>
+
+				<Typography color="var(--mui-palette-neutral-400)" variant="body2" align="center">
+					© 2025 All rights reserved.
+				</Typography>
+
+				<Box sx={{ display: "flex", justifyContent: "center" }}>
+					<Box component="img" alt="Pro version" src="/assets/new_image.jpg" sx={{ height: "auto", width: "160px" }} />
+				</Box>
+			</Stack>
 		</Box>
 	);
 }
