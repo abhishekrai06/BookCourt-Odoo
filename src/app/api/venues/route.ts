@@ -40,6 +40,7 @@ const putValidation = Joi.object({
 		)
 		.min(1)
 		.required(),
+	status: Joi.string().valid("PENDING", "APPROVED", "REJECTED").optional(),
 });
 
 const deleteValidation = Joi.object({
@@ -216,6 +217,7 @@ export async function PUT(request: NextRequest) {
 		const requestData = await request.json();
 		const { error, value } = putValidation.validate(requestData);
 		if (error) {
+			console.dir(error);
 			response.code = ServerCodes.ValidationError;
 			response.message = error.details[0].message;
 			return NextResponse.json(response, { status: 400 });
@@ -230,16 +232,24 @@ export async function PUT(request: NextRequest) {
 
 		// Transaction: update venue and courts
 		const updatedVenue = await prisma.$transaction(async (tx) => {
+			const venueUpdateData: any = {
+				ownerId: value.ownerId,
+				name: value.name,
+				address: value.address,
+				city: value.city,
+				startingPricePerHour: value.startingPricePerHour,
+				updatedAt: Math.floor(Date.now() / 1000),
+			};
+			if (value.status) {
+				// Ensure status is a valid enum value
+				const allowedStatus = ["PENDING", "APPROVED", "REJECTED"];
+				if (allowedStatus.includes(value.status)) {
+					venueUpdateData.status = value.status;
+				}
+			}
 			const venue = await tx.facility.update({
 				where: { id: value.id },
-				data: {
-					ownerId: value.ownerId,
-					name: value.name,
-					address: value.address,
-					city: value.city,
-					startingPricePerHour: value.startingPricePerHour,
-					updatedAt: Math.floor(Date.now() / 1000),
-				},
+				data: venueUpdateData,
 			});
 
 			// Delete removed courts
@@ -290,6 +300,7 @@ export async function PUT(request: NextRequest) {
 		response.message = "Venue updated successfully.";
 		return NextResponse.json(response, { status: 200 });
 	} catch (error) {
+		console.dir(error);
 		response.code = ServerCodes.UnknownError;
 		response.message = `Unknown Error (Code: ${response.code})`;
 		return NextResponse.json(response, { status: 500 });

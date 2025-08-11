@@ -24,7 +24,7 @@ import { Plus as PlusIcon } from "@phosphor-icons/react/dist/ssr/Plus";
 import { VenueDeleteRequestData } from "@/types/api-requests";
 import { ApiResponse } from "@/types/api-response";
 import { Venue } from "@/types/venue";
-import { deleteData, getData } from "@/lib/connection";
+import { deleteData, getData, putData } from "@/lib/connection";
 import { useConfirmationDialog } from "@/contexts/confirmation";
 import { useToast } from "@/contexts/toast-context";
 
@@ -46,6 +46,59 @@ const styles = {
 };
 
 export function VenuesTable(): React.JSX.Element {
+	// Approve/reject venue status
+	const handleVenueStatusUpdate = async (venueId: string, status: "APPROVED" | "REJECTED") => {
+		try {
+			// Fetch venue details
+			const response: ApiResponse = await getData(ApiNames.Venue, { id: venueId });
+			if (response.code !== ServerCodes.Success || !response.data?.[0]) {
+				showToast(response.message || "Venue not found", "error");
+				return;
+			}
+			const venue = response.data[0];
+			// Prepare courts for PUT
+			const cleanCourts = Array.isArray(venue.courts)
+				? venue.courts.map((court: { facilityId?: string; createdAt?: any; updatedAt?: any; [key: string]: any }) => {
+						const { facilityId, createdAt, updatedAt, ...rest } = court;
+						return rest;
+					})
+				: [];
+			// Only send allowed fields for PUT: id, ownerId, name, address, city, startingPricePerHour, courts, status
+			const { id, ownerId, name, address, city, startingPricePerHour } = venue;
+			const updatePayload = {
+				id,
+				ownerId,
+				name,
+				address,
+				city,
+				startingPricePerHour,
+				courts: cleanCourts,
+				status,
+			};
+			const putResponse: ApiResponse = await putData(ApiNames.Venue, updatePayload);
+			if (putResponse.code === ServerCodes.Success) {
+				showToast(`Venue status updated to ${status}`, "success");
+				fetchData(page, rowsPerPage, searchTerm);
+			} else {
+				showToast(putResponse.message || "Failed to update status", "error");
+			}
+		} catch (err) {
+			showToast("Failed to update venue status", "error");
+		}
+	};
+	// Get user role from localStorage
+	const [role, setRole] = React.useState<string | null>(null);
+	React.useEffect(() => {
+		try {
+			const stored = localStorage.getItem("user");
+			if (stored) {
+				const parsed = JSON.parse(stored);
+				setRole(parsed.role ?? null);
+			}
+		} catch {
+			setRole(null);
+		}
+	}, []);
 	const [open, setOpen] = React.useState(false);
 	const [venueToEdit, setVenueToEdit] = React.useState<Venue | undefined>();
 	const [data, setData] = React.useState<Venue[]>([]);
@@ -120,11 +173,15 @@ export function VenuesTable(): React.JSX.Element {
 
 	const fetchData = async (page: number, rowsPerPage: number, searchTerm: string) => {
 		try {
-			const response: ApiResponse = await getData(ApiNames.Venue, {
+			// If admin, fetch all venues (no ownerId filter)
+			const params: Record<string, string> = {
 				page: page.toString(),
 				pageSize: rowsPerPage.toString(),
 				query: searchTerm,
-			});
+			};
+			// If not admin, you may want to filter by ownerId (existing logic)
+			// For now, always show all venues for admin
+			const response: ApiResponse = await getData(ApiNames.Venue, params);
 			if (response.code !== ServerCodes.Success) {
 				showToast(response.message || "Failed to fetch venues", "error");
 			}
@@ -212,12 +269,85 @@ export function VenuesTable(): React.JSX.Element {
 												<TableCell style={styles.cell}>{venue.address}</TableCell>
 												<TableCell style={styles.cell}>{venue.city}</TableCell>
 												<TableCell style={styles.cell}>
-													<IconButton color="primary" onClick={() => onEditClicked(venue)}>
-														<EditIcon />
-													</IconButton>
-													<IconButton color="error" onClick={() => onDeleteClicked(venue.id)}>
-														<DeleteIcon />
-													</IconButton>
+													{/* Only show edit/delete for non-admin */}
+													{role !== "ADMIN" && (
+														<>
+															<IconButton color="primary" onClick={() => onEditClicked(venue)}>
+																<EditIcon />
+															</IconButton>
+															<IconButton color="error" onClick={() => onDeleteClicked(venue.id)}>
+																<DeleteIcon />
+															</IconButton>
+														</>
+													)}
+													{/* Admin approve/reject icons and status display */}
+													{role === "ADMIN" && (
+														<Stack direction="row" spacing={1} alignItems="center">
+															{venue.status === "APPROVED" && (
+																<>
+																	<Typography color="success.main" fontWeight={600}>
+																		Approved
+																	</Typography>
+																	<span role="img" aria-label="approved">
+																		✔️
+																	</span>
+																	<IconButton
+																		color="error"
+																		title="Reject Venue"
+																		onClick={() => handleVenueStatusUpdate(venue.id, "REJECTED")}
+																	>
+																		<span role="img" aria-label="reject">
+																			❌
+																		</span>
+																	</IconButton>
+																</>
+															)}
+															{venue.status === "REJECTED" && (
+																<>
+																	<Typography color="error.main" fontWeight={600}>
+																		Rejected
+																	</Typography>
+																	<span role="img" aria-label="rejected">
+																		❌
+																	</span>
+																	<IconButton
+																		color="success"
+																		title="Approve Venue"
+																		onClick={() => handleVenueStatusUpdate(venue.id, "APPROVED")}
+																	>
+																		<span role="img" aria-label="approve">
+																			✔️
+																		</span>
+																	</IconButton>
+																</>
+															)}
+															{venue.status === "PENDING" && (
+																<>
+																	<Typography color="warning.main" fontWeight={600}>
+																		Pending
+																	</Typography>
+																	<IconButton
+																		color="success"
+																		title="Approve Venue"
+																		onClick={() => handleVenueStatusUpdate(venue.id, "APPROVED")}
+																	>
+																		<span role="img" aria-label="approve">
+																			✔️
+																		</span>
+																	</IconButton>
+																	<IconButton
+																		color="error"
+																		title="Reject Venue"
+																		onClick={() => handleVenueStatusUpdate(venue.id, "REJECTED")}
+																	>
+																		<span role="img" aria-label="reject">
+																			❌
+																		</span>
+																	</IconButton>
+																</>
+															)}
+														</Stack>
+													)}
 												</TableCell>
 											</TableRow>
 
