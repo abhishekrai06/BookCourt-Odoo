@@ -60,16 +60,17 @@ export async function GET(request: NextRequest) {
 		const getDocCountsByYear = async (year: number, tableName: string) => {
 			// Only allow trusted table names!
 			if (tableName !== "booking") throw new Error("Invalid table name");
+			// Use 'createdAt' column (DateTime) for booking creation date
 			const docs = await prisma.$queryRawUnsafe<{ month: number | string; count: bigint | number }[]>(
 				`
-      SELECT 
-        MONTH(FROM_UNIXTIME(created)) as month, 
-        COUNT(*) as count 
-      FROM ${tableName}
-      WHERE YEAR(FROM_UNIXTIME(created)) = ? AND parentUserId = ?
-      GROUP BY month
-      ORDER BY month;
-    `,
+					SELECT 
+						MONTH(createdAt) as month, 
+						COUNT(*) as count 
+					FROM ${tableName}
+					WHERE YEAR(createdAt) = ?
+					GROUP BY month
+					ORDER BY month;
+				`,
 				year
 			);
 

@@ -12,7 +12,6 @@ import { useToast } from "@/contexts/toast-context";
 export function OverviewLayout(): React.JSX.Element {
 	const [role, setRole] = React.useState<string | null | undefined>();
 	const [ownerVenues, setOwnerVenues] = React.useState<Venue[]>([]);
-	const [ownerBookingCount, setOwnerBookingCount] = React.useState<number>(0);
 	const [dashboardStats, setDashboardStats] = React.useState<DashboardStats>({
 		totalUsers: 0,
 		totalOwners: 0,
@@ -87,7 +86,6 @@ export function OverviewLayout(): React.JSX.Element {
 		};
 		fetchVenues();
 	}, [search, city]);
-	// --- Enhanced logic: show booking info for courts already booked by user ---
 	const [userBookings, setUserBookings] = React.useState<any[]>([]);
 
 	React.useEffect(() => {
@@ -118,7 +116,6 @@ export function OverviewLayout(): React.JSX.Element {
 		};
 		fetchOwnerBookings();
 	}, [ownerVenues]);
-	// --- Review logic ---
 	const [reviewDialog, setReviewDialog] = React.useState<{ open: boolean; court?: any; venue?: any }>({
 		open: false,
 	});
@@ -456,7 +453,6 @@ export function OverviewLayout(): React.JSX.Element {
 						</CardContent>
 					</Card>
 				)}
-				{/* Review Dialog */}
 				{reviewDialog.open && reviewDialog.court && (
 					<Card
 						elevation={6}
@@ -529,8 +525,6 @@ export function OverviewLayout(): React.JSX.Element {
 	}
 
 	if (role === "OWNER") {
-		// --- Enhanced logic: show bookings count per court and add big card for accessibility ---
-		// Count bookings per court
 		const getCourtBookingCount = (venue: any, courtId: string) => {
 			return ownerBookings.filter((b) => b.courtId === courtId).length;
 		};
@@ -657,5 +651,97 @@ export function OverviewLayout(): React.JSX.Element {
 		);
 	}
 
-	return <Box>{/* Admin view content here */}</Box>;
+	// Admin view
+	return (
+		<Stack spacing={3} mt={2}>
+			<Card
+				elevation={3}
+				sx={{ background: "linear-gradient(90deg,#1976d2 0%,#42a5f5 100%)", borderRadius: "16px", boxShadow: 3 }}
+			>
+				<CardContent>
+					<Typography variant="h4" gutterBottom sx={{ fontWeight: "bold", color: "#fff" }}>
+						Welcome, {JSON.parse(localStorage.getItem("user") || "{}").fullName || "Admin"}!
+					</Typography>
+					<Typography variant="body1" sx={{ color: "#e3f2fd" }}>
+						You can manage all users and venues below.
+					</Typography>
+				</CardContent>
+			</Card>
+			<Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+				<Card elevation={2} sx={{ flex: 1, borderRadius: "12px", background: "#fff", boxShadow: 2 }}>
+					<CardContent>
+						<Typography variant="h6" sx={{ color: "#1976d2", fontWeight: "bold" }}>
+							Total Owners
+						</Typography>
+						<Typography variant="h4" sx={{ color: "#1976d2", fontWeight: "bold" }}>
+							{dashboardStats.totalOwners}
+						</Typography>
+					</CardContent>
+				</Card>
+				<Card elevation={2} sx={{ flex: 1, borderRadius: "12px", background: "#fff", boxShadow: 2 }}>
+					<CardContent>
+						<Typography variant="h6" sx={{ color: "#1976d2", fontWeight: "bold" }}>
+							Total Users
+						</Typography>
+						<Typography variant="h4" sx={{ color: "#1976d2", fontWeight: "bold" }}>
+							{dashboardStats.totalUsers}
+						</Typography>
+					</CardContent>
+				</Card>
+				<Card elevation={2} sx={{ flex: 1, borderRadius: "12px", background: "#fff", boxShadow: 2 }}>
+					<CardContent>
+						<Typography variant="h6" sx={{ color: "#1976d2", fontWeight: "bold" }}>
+							Total Venues
+						</Typography>
+						<Typography variant="h4" sx={{ color: "#1976d2", fontWeight: "bold" }}>
+							{dashboardStats.totalVenues}
+						</Typography>
+					</CardContent>
+				</Card>
+			</Stack>
+			<Card elevation={3} sx={{ backgroundColor: "#f5f5f5", borderRadius: "12px" }}>
+				<CardContent>
+					<Typography variant="h5" gutterBottom sx={{ fontWeight: "bold", color: "#1976d2" }}>
+						Accessibility Options
+					</Typography>
+					<Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+						<button
+							style={{
+								padding: "16px 32px",
+								borderRadius: "12px",
+								background: "linear-gradient(90deg,#42a5f5 0%,#1976d2 100%)",
+								color: "#fff",
+								border: "none",
+								fontWeight: "bold",
+								fontSize: "1.2rem",
+								cursor: "pointer",
+								boxShadow: "0 2px 8px rgba(25,118,210,0.15)",
+								transition: "background 0.3s",
+							}}
+							onClick={() => (window.location.href = "/dashboard/users")}
+						>
+							Manage Users
+						</button>
+						<button
+							style={{
+								padding: "16px 32px",
+								borderRadius: "12px",
+								background: "linear-gradient(90deg,#1976d2 0%,#42a5f5 100%)",
+								color: "#fff",
+								border: "none",
+								fontWeight: "bold",
+								fontSize: "1.2rem",
+								cursor: "pointer",
+								boxShadow: "0 2px 8px rgba(25,118,210,0.15)",
+								transition: "background 0.3s",
+							}}
+							onClick={() => (window.location.href = "/dashboard/customers")}
+						>
+							Manage Venues
+						</button>
+					</Stack>
+				</CardContent>
+			</Card>
+		</Stack>
+	);
 }
