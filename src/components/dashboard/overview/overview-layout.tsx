@@ -103,7 +103,70 @@ export function OverviewLayout(): React.JSX.Element {
 		};
 		fetchUserBookings();
 	}, [venues]);
+	const [ownerBookings, setOwnerBookings] = React.useState<any[]>([]);
+
+	React.useEffect(() => {
+		const fetchOwnerBookings = async () => {
+			const user = JSON.parse(localStorage.getItem("user") || "{}");
+			if (!user.id) return;
+			const response = await getData(ApiNames.Booking, { ownerId: user.id, page: "1", pageSize: "100" });
+			if (response.code === ServerCodes.Success && Array.isArray(response.data)) {
+				setOwnerBookings(response.data);
+			} else {
+				setOwnerBookings([]);
+			}
+		};
+		fetchOwnerBookings();
+	}, [ownerVenues]);
+	// --- Review logic ---
+	const [reviewDialog, setReviewDialog] = React.useState<{ open: boolean; court?: any; venue?: any }>({
+		open: false,
+	});
+	const [reviewForm, setReviewForm] = React.useState({ rating: 5, comment: "" });
+	const [isReviewing, setIsReviewing] = React.useState(false);
+	const [courtReviews, setCourtReviews] = React.useState<{
+		[courtId: string]: { avgRating: number; reviews: any[] };
+	}>({});
+	const [viewReviewsCourtId, setViewReviewsCourtId] = React.useState<string | null>(null);
+
 	if (role === "USER") {
+		const fetchCourtReviews = async (facilityId: string, courtId: string) => {
+			const response = await getData("review", { facilityId });
+			if (response.code === ServerCodes.Success && Array.isArray(response.data)) {
+				const { avgRating, reviews } = response.data[0];
+				setCourtReviews((prev) => ({ ...prev, [courtId]: { avgRating, reviews } }));
+			}
+		};
+
+		const handleOpenReviewDialog = (court: any, venue: any) => {
+			setReviewDialog({ open: true, court, venue });
+			fetchCourtReviews(venue.id, court.id);
+		};
+
+		const handleSubmitReview = async () => {
+			setIsReviewing(true);
+			try {
+				const user = JSON.parse(localStorage.getItem("user") || "{}");
+				const payload = {
+					userId: user.id,
+					facilityId: reviewDialog.venue.id,
+					rating: reviewForm.rating,
+					comment: reviewForm.comment,
+				};
+				const response = await postData("review", payload);
+				if (response.code === ServerCodes.Success) {
+					showToast("Review submitted!", "success");
+					setReviewDialog({ open: false });
+					fetchCourtReviews(reviewDialog.venue.id, reviewDialog.court.id);
+				} else {
+					showToast(response.message || "Review failed", "error");
+				}
+			} catch (err) {
+				showToast("Review failed", "error");
+			}
+			setIsReviewing(false);
+		};
+
 		const handleBookCourt = async () => {
 			if (!bookingDialog.court || !bookingForm.startsAt || !bookingForm.endsAt) return;
 			setIsBooking(true);
@@ -194,60 +257,130 @@ export function OverviewLayout(): React.JSX.Element {
 								<List>
 									{(venue.courts || []).map((court: any) => {
 										const booking = userBookings.find((b) => b.courtId === court.id);
+										const reviewInfo = courtReviews[court.id] || {};
 										return (
-											<ListItem
-												key={court.id}
-												sx={{
-													display: "flex",
-													alignItems: "center",
-													background: booking ? "#e3f2fd" : "inherit",
-													borderRadius: "8px",
-													mb: 1,
-												}}
-											>
-												<ListItemText
-													primary={
-														<span style={{ fontWeight: "bold", color: booking ? "#1976d2" : "#333" }}>
-															{court.name} ({court.sport})
-														</span>
-													}
-													secondary={
-														<span style={{ color: booking ? "#1976d2" : "#555" }}>Price: ₹{court.pricePerHour}/hr</span>
-													}
-												/>
-												{booking ? (
-													<Box sx={{ ml: 2, p: 2, background: "#bbdefb", borderRadius: "8px", minWidth: 220 }}>
-														<Typography variant="body2" sx={{ color: "#1976d2", fontWeight: "bold" }}>
-															Your Booking
+											<>
+												<ListItem
+													key={court.id}
+													sx={{
+														display: "flex",
+														alignItems: "center",
+														background: booking ? "#e3f2fd" : "inherit",
+														borderRadius: "8px",
+														mb: 1,
+													}}
+												>
+													<ListItemText
+														primary={
+															<span style={{ fontWeight: "bold", color: booking ? "#1976d2" : "#333" }}>
+																{court.name} ({court.sport})
+															</span>
+														}
+														secondary={
+															<span style={{ color: booking ? "#1976d2" : "#555" }}>
+																Price: ₹{court.pricePerHour}/hr
+															</span>
+														}
+													/>
+													<Box sx={{ ml: 2, minWidth: 120 }}>
+														<Typography variant="body2" sx={{ color: "#ffa726", fontWeight: "bold" }}>
+															Avg Rating: {reviewInfo.avgRating ? reviewInfo.avgRating.toFixed(1) : "N/A"}
 														</Typography>
-														<Typography variant="body2">
-															Start: {new Date(booking.startsAt).toLocaleString()}
-														</Typography>
-														<Typography variant="body2">End: {new Date(booking.endsAt).toLocaleString()}</Typography>
-														<Typography variant="body2">Status: {booking.status}</Typography>
-														<Typography variant="body2">Total: ₹{booking.totalPrice}</Typography>
+														<button
+															style={{
+																marginTop: 4,
+																padding: "4px 12px",
+																borderRadius: "6px",
+																background: "#1976d2",
+																color: "#fff",
+																border: "none",
+																fontWeight: "bold",
+																fontSize: "0.9rem",
+																cursor: "pointer",
+															}}
+															onClick={() => {
+																fetchCourtReviews(venue.id, court.id);
+																setViewReviewsCourtId(viewReviewsCourtId === court.id ? null : court.id);
+															}}
+														>
+															{viewReviewsCourtId === court.id ? "Hide Reviews" : "View Reviews"}
+														</button>
 													</Box>
-												) : (
-													<button
-														style={{
-															marginLeft: "16px",
-															padding: "10px 24px",
-															borderRadius: "8px",
-															background: "linear-gradient(90deg,#1976d2 0%,#42a5f5 100%)",
-															color: "#fff",
-															border: "none",
-															fontWeight: "bold",
-															fontSize: "1rem",
-															cursor: "pointer",
-															boxShadow: "0 2px 8px rgba(25,118,210,0.15)",
-															transition: "background 0.3s",
-														}}
-														onClick={() => setBookingDialog({ open: true, court, venue })}
-													>
-														Book
-													</button>
+													{booking ? (
+														<Box sx={{ ml: 2, p: 2, background: "#bbdefb", borderRadius: "8px", minWidth: 220 }}>
+															<Typography variant="body2" sx={{ color: "#1976d2", fontWeight: "bold" }}>
+																Your Booking
+															</Typography>
+															<Typography variant="body2">
+																Start: {new Date(booking.startsAt).toLocaleString()}
+															</Typography>
+															<Typography variant="body2">End: {new Date(booking.endsAt).toLocaleString()}</Typography>
+															<Typography variant="body2">Status: {booking.status}</Typography>
+															<Typography variant="body2">Total: ₹{booking.totalPrice}</Typography>
+															<button
+																style={{
+																	marginTop: 8,
+																	padding: "6px 16px",
+																	borderRadius: "8px",
+																	background: "#ffa726",
+																	color: "#fff",
+																	border: "none",
+																	fontWeight: "bold",
+																	fontSize: "0.95rem",
+																	cursor: "pointer",
+																}}
+																onClick={() => handleOpenReviewDialog(court, venue)}
+															>
+																{reviewInfo.reviews && reviewInfo.reviews.some((r) => r.userId === booking.userId)
+																	? "Edit Review"
+																	: "Submit Review"}
+															</button>
+														</Box>
+													) : (
+														<button
+															style={{
+																marginLeft: "16px",
+																padding: "10px 24px",
+																borderRadius: "8px",
+																background: "linear-gradient(90deg,#1976d2 0%,#42a5f5 100%)",
+																color: "#fff",
+																border: "none",
+																fontWeight: "bold",
+																fontSize: "1rem",
+																cursor: "pointer",
+																boxShadow: "0 2px 8px rgba(25,118,210,0.15)",
+																transition: "background 0.3s",
+															}}
+															onClick={() => setBookingDialog({ open: true, court, venue })}
+														>
+															Book
+														</button>
+													)}
+												</ListItem>
+												{viewReviewsCourtId === court.id && reviewInfo.reviews && (
+													<Box sx={{ ml: 4, mb: 2, p: 2, background: "#f5f5f5", borderRadius: "8px" }}>
+														<Typography variant="subtitle2" sx={{ color: "#1976d2", fontWeight: "bold" }}>
+															Reviews:
+														</Typography>
+														{reviewInfo.reviews.length === 0 ? (
+															<Typography variant="body2">No reviews yet.</Typography>
+														) : (
+															reviewInfo.reviews.map((r: any) => (
+																<Box
+																	key={r.id}
+																	sx={{ mb: 1, p: 1, background: "#fff", borderRadius: "6px", boxShadow: 1 }}
+																>
+																	<Typography variant="body2" sx={{ fontWeight: "bold", color: "#1976d2" }}>
+																		{r.user?.fullName || "User"}
+																	</Typography>
+																	<Typography variant="body2">Rating: {r.rating}</Typography>
+																	<Typography variant="body2">{r.comment}</Typography>
+																</Box>
+															))
+														)}
+													</Box>
 												)}
-											</ListItem>
+											</>
 										);
 									})}
 									{(venue.courts || []).length === 0 && (
@@ -323,31 +456,193 @@ export function OverviewLayout(): React.JSX.Element {
 						</CardContent>
 					</Card>
 				)}
+				{/* Review Dialog */}
+				{reviewDialog.open && reviewDialog.court && (
+					<Card
+						elevation={6}
+						sx={{ maxWidth: 400, mx: "auto", mt: 2, borderRadius: "16px", boxShadow: 4, background: "#fff" }}
+					>
+						<CardContent>
+							<Typography variant="h6" gutterBottom sx={{ color: "#1976d2", fontWeight: "bold" }}>
+								Review Court: {reviewDialog.court.name} ({reviewDialog.court.sport})
+							</Typography>
+							<Typography color="text.secondary" gutterBottom>
+								Venue: {reviewDialog.venue?.name}
+							</Typography>
+							<Stack spacing={2}>
+								<label style={{ fontWeight: "bold", color: "#1976d2" }}>Rating:</label>
+								<input
+									type="number"
+									min={1}
+									max={5}
+									value={reviewForm.rating}
+									onChange={(e) => setReviewForm((f) => ({ ...f, rating: Number(e.target.value) }))}
+									style={{ padding: "8px", borderRadius: "8px", border: "1px solid #1976d2", fontSize: "1rem" }}
+								/>
+								<label style={{ fontWeight: "bold", color: "#1976d2" }}>Comment:</label>
+								<textarea
+									value={reviewForm.comment}
+									onChange={(e) => setReviewForm((f) => ({ ...f, comment: e.target.value }))}
+									rows={3}
+									style={{ padding: "8px", borderRadius: "8px", border: "1px solid #1976d2", fontSize: "1rem" }}
+								/>
+								<button
+									style={{
+										padding: "10px 24px",
+										borderRadius: "8px",
+										background: "#1976d2",
+										color: "#fff",
+										border: "none",
+										fontWeight: "bold",
+										fontSize: "1rem",
+										cursor: "pointer",
+										boxShadow: "0 2px 8px rgba(25,118,210,0.15)",
+										transition: "background 0.3s",
+									}}
+									onClick={handleSubmitReview}
+									disabled={isReviewing}
+								>
+									{isReviewing ? "Submitting..." : "Submit Review"}
+								</button>
+								<button
+									style={{
+										padding: "10px 24px",
+										borderRadius: "8px",
+										background: "#aaa",
+										color: "#fff",
+										border: "none",
+										fontWeight: "bold",
+										fontSize: "1rem",
+										cursor: "pointer",
+									}}
+									onClick={() => setReviewDialog({ open: false })}
+									disabled={isReviewing}
+								>
+									Cancel
+								</button>
+							</Stack>
+						</CardContent>
+					</Card>
+				)}
 			</Stack>
 		);
 	}
 
 	if (role === "OWNER") {
+		// --- Enhanced logic: show bookings count per court and add big card for accessibility ---
+		// Count bookings per court
+		const getCourtBookingCount = (venue: any, courtId: string) => {
+			return ownerBookings.filter((b) => b.courtId === courtId).length;
+		};
+
 		return (
 			<Stack spacing={3} mt={2}>
-				<Card elevation={3} sx={{ backgroundColor: "#f5f5f5", borderRadius: "8px" }}>
+				<Card
+					elevation={6}
+					sx={{
+						background: "linear-gradient(90deg,#1976d2 0%,#42a5f5 100%)",
+						borderRadius: "16px",
+						boxShadow: 4,
+						mb: 2,
+					}}
+				>
 					<CardContent>
-						<Typography variant="h5" gutterBottom sx={{ fontWeight: "bold", color: "#333" }}>
+						<Typography variant="h4" gutterBottom sx={{ fontWeight: "bold", color: "#fff" }}>
 							Welcome, {JSON.parse(localStorage.getItem("user") || "{}").fullName || "Owner"}!
 						</Typography>
-						<Typography variant="body1" sx={{ color: "#555" }}>
-							You have <b>{ownerBookingCount}</b> bookings.
+						<Typography variant="body1" sx={{ color: "#e3f2fd", fontSize: "1.1rem" }}>
+							You have <b>{ownerBookings.length}</b> total bookings across your venues.
 						</Typography>
-						<Typography variant="h6" sx={{ mt: 2 }}>
-							Your Venues:
+						<Stack direction={{ xs: "column", sm: "row" }} spacing={2} mt={2}>
+							<button
+								style={{
+									padding: "16px 32px",
+									borderRadius: "12px",
+									background: "linear-gradient(90deg,#42a5f5 0%,#1976d2 100%)",
+									color: "#fff",
+									border: "none",
+									fontWeight: "bold",
+									fontSize: "1.2rem",
+									cursor: "pointer",
+									boxShadow: "0 2px 8px rgba(25,118,210,0.15)",
+									transition: "background 0.3s",
+								}}
+								onClick={() => (window.location.href = "/dashboard/venues")}
+							>
+								Go to My Venues
+							</button>
+							<button
+								style={{
+									padding: "16px 32px",
+									borderRadius: "12px",
+									background: "#fff",
+									color: "#1976d2",
+									border: "2px solid #1976d2",
+									fontWeight: "bold",
+									fontSize: "1.2rem",
+									cursor: "pointer",
+									boxShadow: "0 2px 8px rgba(25,118,210,0.10)",
+									transition: "background 0.3s",
+								}}
+								onClick={() => (window.location.href = "/dashboard/profile")}
+							>
+								Go to Profile
+							</button>
+						</Stack>
+					</CardContent>
+				</Card>
+				<Card elevation={3} sx={{ backgroundColor: "#f5f5f5", borderRadius: "12px" }}>
+					<CardContent>
+						<Typography variant="h5" gutterBottom sx={{ fontWeight: "bold", color: "#1976d2" }}>
+							Your Venues
 						</Typography>
 						<List>
 							{ownerVenues.map((venue) => (
-								<ListItem key={venue.id}>
+								<ListItem key={venue.id} sx={{ flexDirection: "column", alignItems: "flex-start", mb: 2 }}>
 									<ListItemText
-										primary={venue.name}
-										secondary={`City: ${venue.city}, Starting Price: ₹${venue.startingPricePerHour}/hr`}
+										primary={<span style={{ fontWeight: "bold", fontSize: "1.1rem" }}>{venue.name}</span>}
+										secondary={
+											<span style={{ color: "#555" }}>
+												City: {venue.city}, Starting Price: ₹{venue.startingPricePerHour}/hr
+											</span>
+										}
 									/>
+									<Typography variant="subtitle2" sx={{ mt: 1, color: "#1976d2", fontWeight: "bold" }}>
+										Courts:
+									</Typography>
+									<List sx={{ width: "100%" }}>
+										{(venue.courts || []).map((court: any) => (
+											<ListItem
+												key={court.id}
+												sx={{
+													display: "flex",
+													alignItems: "center",
+													background: "#e3f2fd",
+													borderRadius: "8px",
+													mb: 1,
+												}}
+											>
+												<ListItemText
+													primary={
+														<span style={{ fontWeight: "bold", color: "#1976d2" }}>
+															{court.name} ({court.sport})
+														</span>
+													}
+													secondary={<span style={{ color: "#555" }}>Price: ₹{court.pricePerHour}/hr</span>}
+												/>
+												<Box sx={{ ml: 2, p: 2, background: "#bbdefb", borderRadius: "8px", minWidth: 180 }}>
+													<Typography variant="body2" sx={{ color: "#1976d2", fontWeight: "bold" }}>
+														Bookings: {getCourtBookingCount(venue, court.id)}
+													</Typography>
+												</Box>
+											</ListItem>
+										))}
+										{(venue.courts || []).length === 0 && (
+											<ListItem>
+												<ListItemText primary="No courts available." />
+											</ListItem>
+										)}
+									</List>
 								</ListItem>
 							))}
 							{ownerVenues.length === 0 && (
