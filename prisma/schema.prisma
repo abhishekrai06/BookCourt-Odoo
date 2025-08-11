@@ -17,6 +17,7 @@ model User {
   emailVerifiedAt DateTime?
   createdAt       Int
   updatedAt       Int
+  banned          Boolean    @default(false)
   facilities      Facility[] @relation("OwnerFacilities")
   bookings        Booking[]
   reviews         Review[]

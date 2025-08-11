@@ -13,6 +13,7 @@ export enum ApiNames {
 	Venue = "venues",
 	DashboardStats = "dashboard-stats",
 	Booking = "booking",
+	User = "users",
 }
 
 export class Constants {
