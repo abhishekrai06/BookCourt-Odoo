@@ -14,6 +14,7 @@ export enum ApiNames {
 	DashboardStats = "dashboard-stats",
 	Booking = "booking",
 	User = "users",
+	ResetPassword = "reset-password",
 }
 
 export class Constants {

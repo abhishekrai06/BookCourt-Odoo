@@ -31,3 +31,7 @@ export interface VenuePutRequestData {
 	startingPricePerHour: number;
 	courts: Courts[];
 }
+export interface ResetPasswordPostRequestData {
+	old_password: string;
+	new_password: string;
+}

@@ -39,6 +39,11 @@ export async function POST(request: NextRequest) {
 			response.message = "User not found";
 			return NextResponse.json(response, { status: 400 });
 		}
+		if (user.banned) {
+			response.code = ServerCodes.AuthError;
+			response.message = "Your account has been banned. Please contact support.";
+			return NextResponse.json(response, { status: 403 });
+		}
 		const isPasswordValid = await bcrypt.compare(password, user.password);
 		if (!isPasswordValid) {
 			response.code = ServerCodes.InvalidArgs;
