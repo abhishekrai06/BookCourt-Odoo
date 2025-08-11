@@ -18,7 +18,7 @@ import TableHead from "@mui/material/TableHead";
 import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
 
-import { deleteData, getData } from "@/lib/connection";
+import { deleteData, getData, putData } from "@/lib/connection";
 import { useConfirmationDialog } from "@/contexts/confirmation";
 import { useToast } from "@/contexts/toast-context";
 
@@ -47,6 +47,7 @@ export function BookingsTable(): React.JSX.Element {
 	const { showConfirmationDialog } = useConfirmationDialog();
 	const [role, setRole] = React.useState<string | null | undefined>();
 	const [userId, setUserId] = React.useState<string | null>(null);
+	const [actionLoading, setActionLoading] = React.useState<string | null>(null);
 
 	React.useEffect(() => {
 		try {
@@ -117,10 +118,12 @@ export function BookingsTable(): React.JSX.Element {
 	};
 
 	const handleCancelBooking = async (bookingId: string) => {
+		setActionLoading(bookingId);
 		try {
 			const response = await deleteData(ApiNames.Booking, { id: bookingId });
 			if (response.code !== ServerCodes.Success) {
 				showToast(response.message || "Unknown Error", "error");
+				setActionLoading(null);
 				return;
 			}
 			fetchData(page, rowsPerPage, searchTerm);
@@ -128,6 +131,7 @@ export function BookingsTable(): React.JSX.Element {
 		} catch (err) {
 			showToast(err instanceof Error ? err.message : "An unknown error occurred", "error");
 		}
+		setActionLoading(null);
 	};
 
 	const onCancelClicked = (bookingId: string) => {
@@ -136,6 +140,31 @@ export function BookingsTable(): React.JSX.Element {
 			onConfirm: () => handleCancelBooking(bookingId),
 			onCancel() {},
 		});
+	};
+
+	const handleConfirmBooking = async (booking: any) => {
+		setActionLoading(booking.id);
+		try {
+			const result = await putData(ApiNames.Booking, {
+				id: booking.id,
+				userId: booking.userId,
+				courtId: booking.courtId,
+				startsAt: booking.startsAt,
+				endsAt: booking.endsAt,
+				totalPrice: booking.totalPrice,
+				status: "CONFIRMED",
+			});
+			if (result.code !== ServerCodes.Success) {
+				showToast(result.message || "Unknown Error", "error");
+				setActionLoading(null);
+				return;
+			}
+			fetchData(page, rowsPerPage, searchTerm);
+			showToast("Booking confirmed successfully", "success");
+		} catch (err) {
+			showToast(err instanceof Error ? err.message : "An unknown error occurred", "error");
+		}
+		setActionLoading(null);
 	};
 
 	return (
@@ -180,11 +209,34 @@ export function BookingsTable(): React.JSX.Element {
 												<TableCell style={styles.cell}>{booking.totalPrice}</TableCell>
 												<TableCell style={styles.cell}>{booking.status}</TableCell>
 												<TableCell style={styles.cell}>
-													{role === "USER" ? (
-														<IconButton color="error" onClick={() => onCancelClicked(booking.id)}>
+													{role === "USER" && (
+														<IconButton
+															color="error"
+															onClick={() => onCancelClicked(booking.id)}
+															disabled={actionLoading === booking.id}
+														>
 															<DeleteIcon />
 														</IconButton>
-													) : null}
+													)}
+													{role === "OWNER" && (
+														<>
+															<IconButton
+																color="success"
+																onClick={() => handleConfirmBooking(booking)}
+																disabled={actionLoading === booking.id || booking.status === "CONFIRMED"}
+															>
+																{/* Correct icon for confirm (check) */}
+																<span style={{ color: "green", fontSize: 20, fontWeight: "bold" }}>&#10003;</span>
+															</IconButton>
+															<IconButton
+																color="error"
+																onClick={() => onCancelClicked(booking.id)}
+																disabled={actionLoading === booking.id}
+															>
+																<DeleteIcon />
+															</IconButton>
+														</>
+													)}
 												</TableCell>
 											</TableRow>
 										</React.Fragment>
