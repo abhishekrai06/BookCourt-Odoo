@@ -1,29 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ServerCodes } from "@/app/constants/constants";
+import { Constants, ServerCodes } from "@/app/constants/constants";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 import { ApiResponse } from "@/types/api-response";
 import prisma from "@/lib/prisma";
 
 const Joi = require("joi");
 const postValidation = Joi.object({
-	fullName: Joi.string().min(1).required().messages({
-		"string.empty": "Full name is required",
-		"any.required": "Full name is required",
-	}),
 	email: Joi.string().email().required().messages({
 		"string.empty": "Email is required",
 		"string.email": "Please provide a valid email address",
 		"any.required": "Email is required",
 	}),
-	password: Joi.string().min(1).max(25).required().messages({
+	password: Joi.string().min(1).required().messages({
 		"string.empty": "Password is required",
 		"any.required": "Password is required",
-	}),
-	role: Joi.string().valid("USER", "OWNER", "ADMIN").required().messages({
-		"string.empty": "Role is required",
-		"any.required": "Role is required",
-		"string.valid": "Role must be one of: USER, OWNER, ADMIN",
 	}),
 });
 
@@ -33,39 +25,39 @@ export async function POST(request: NextRequest) {
 		const requestData = await request.json();
 		const { error, value } = postValidation.validate(requestData);
 		if (error) {
-			response.code = ServerCodes.ValidationError;
+			response.code = ServerCodes.AuthError;
 			response.message = error.details[0].message;
 			return NextResponse.json(response, { status: 400 });
 		}
-		let existingUser;
-		existingUser = await prisma.user.findUnique({
-			where: {
-				email: requestData.email,
-			},
+		const { email, password } = value;
+		let user;
+		user = await prisma.user.findUnique({
+			where: { email },
 		});
-		if (existingUser) {
+		if (!user) {
 			response.code = ServerCodes.InvalidArgs;
-			response.message = "Email already exists.";
+			response.message = "User not found";
 			return NextResponse.json(response, { status: 400 });
 		}
-		const { fullName, email, password, role } = value;
-		const hashedPassword = await bcrypt.hash(password, 10);
-		const newUser = await prisma.user.create({
-			data: {
-				fullName,
-				email,
-				password: hashedPassword,
-				createdAt: Math.floor(Date.now() / 1000),
-				updatedAt: Math.floor(Date.now() / 1000),
-				role,
+		const isPasswordValid = await bcrypt.compare(password, user.password);
+		if (!isPasswordValid) {
+			response.code = ServerCodes.InvalidArgs;
+			response.message = "Incorrect Password.";
+			return NextResponse.json(response, { status: 400 });
+		}
+		const token = jwt.sign(
+			{
+				userId: user.id,
+				accountType: user.role,
 			},
-		});
+			Constants.SECRET_JWT_KEY,
+			{ expiresIn: "24h" }
+		);
 		response.code = ServerCodes.Success;
-		response.message = "User added successfully";
-		response.data = [newUser];
+		response.message = "User logged in successfully.";
+		response.data = [{ token, user }];
 		return NextResponse.json(response, { status: 200 });
 	} catch (error) {
-		console.dir(error);
 		response.code = ServerCodes.UnknownError;
 		response.message = `Unknown Error (Code: ${response.code})`;
 		return NextResponse.json(response, { status: 500 });
