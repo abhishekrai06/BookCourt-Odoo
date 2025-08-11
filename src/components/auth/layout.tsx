@@ -41,23 +41,35 @@ export function Layout({ children }: LayoutProps): React.JSX.Element {
           p: 3,
         }}
       >
-        <Stack spacing={3}>
+        <Stack spacing={3} sx={{ maxWidth: 700 }}>
           <Stack spacing={1}>
             <Typography color="inherit" sx={{ fontSize: '24px', lineHeight: '32px', textAlign: 'center' }} variant="h1">
               Welcome to{' '}
               <Box component="span" sx={{ color: '#15b79e' }}>
-                Devias Kit
+                Book Court
               </Box>
             </Typography>
             <Typography align="center" variant="subtitle1">
-              A professional template that comes with ready-to-use MUI components.
+              Book local sports courts in seconds—find nearby venues, compare prices, and lock your slot.
+              Badminton, football turf, table tennis, and more.
             </Typography>
           </Stack>
+
+          <Stack
+            direction="row"
+            spacing={3}
+            sx={{ justifyContent: 'center', color: 'rgba(255,255,255,0.85)' }}
+          >
+            <Typography variant="body2">• Live availability</Typography>
+            <Typography variant="body2">• OTP‑verified accounts</Typography>
+            <Typography variant="body2">• Easy cancellations*</Typography>
+          </Stack>
+
           <Box sx={{ display: 'flex', justifyContent: 'center' }}>
             <Box
               component="img"
-              alt="Widgets"
-              src="/assets/auth-widgets.png"
+              alt="Book Court illustration"
+              src="/assets/court_booking.png" 
               sx={{ height: 'auto', width: '100%', maxWidth: '600px' }}
             />
           </Box>

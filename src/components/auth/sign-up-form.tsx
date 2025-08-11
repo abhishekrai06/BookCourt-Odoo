@@ -127,30 +127,11 @@ export function SignUpForm(): React.JSX.Element {
               </FormControl>
             )}
           />
-          <Controller
-            control={control}
-            name="terms"
-            render={({ field }) => (
-              <div>
-                <FormControlLabel
-                  control={<Checkbox {...field} />}
-                  label={
-                    <React.Fragment>
-                      I have read the <Link>terms and conditions</Link>
-                    </React.Fragment>
-                  }
-                />
-                {errors.terms ? <FormHelperText error>{errors.terms.message}</FormHelperText> : null}
-              </div>
-            )}
-          />
-          {errors.root ? <Alert color="error">{errors.root.message}</Alert> : null}
           <Button disabled={isPending} type="submit" variant="contained">
             Sign up
           </Button>
         </Stack>
       </form>
-      <Alert color="warning">Created users are not persisted</Alert>
     </Stack>
   );
 }
