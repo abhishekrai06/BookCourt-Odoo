@@ -87,6 +87,22 @@ export function OverviewLayout(): React.JSX.Element {
 		};
 		fetchVenues();
 	}, [search, city]);
+	// --- Enhanced logic: show booking info for courts already booked by user ---
+	const [userBookings, setUserBookings] = React.useState<any[]>([]);
+
+	React.useEffect(() => {
+		const fetchUserBookings = async () => {
+			const user = JSON.parse(localStorage.getItem("user") || "{}");
+			if (!user.id) return;
+			const response = await getData(ApiNames.Booking, { userId: user.id, page: "1", pageSize: "100" });
+			if (response.code === ServerCodes.Success && Array.isArray(response.data)) {
+				setUserBookings(response.data);
+			} else {
+				setUserBookings([]);
+			}
+		};
+		fetchUserBookings();
+	}, [venues]);
 	if (role === "USER") {
 		const handleBookCourt = async () => {
 			if (!bookingDialog.court || !bookingForm.startsAt || !bookingForm.endsAt) return;
@@ -118,13 +134,16 @@ export function OverviewLayout(): React.JSX.Element {
 
 		return (
 			<Stack spacing={3} mt={2}>
-				<Card elevation={3} sx={{ backgroundColor: "#f5f5f5", borderRadius: "8px" }}>
+				<Card
+					elevation={3}
+					sx={{ background: "linear-gradient(90deg,#1976d2 0%,#42a5f5 100%)", borderRadius: "16px", boxShadow: 3 }}
+				>
 					<CardContent>
-						<Typography variant="h5" gutterBottom sx={{ fontWeight: "bold", color: "#333" }}>
+						<Typography variant="h4" gutterBottom sx={{ fontWeight: "bold", color: "#fff" }}>
 							Welcome, {JSON.parse(localStorage.getItem("user") || "{}").fullName || "User"}!
 						</Typography>
-						<Typography variant="body1" sx={{ color: "#555" }}>
-							You can view all venues and book courts below.
+						<Typography variant="body1" sx={{ color: "#e3f2fd" }}>
+							You can view all venues and book courts below. Your bookings will be highlighted.
 						</Typography>
 					</CardContent>
 				</Card>
@@ -134,49 +153,103 @@ export function OverviewLayout(): React.JSX.Element {
 						placeholder="Search Venue"
 						value={search}
 						onChange={(e) => setSearch(e.target.value)}
-						style={{ padding: "8px", borderRadius: "4px", border: "1px solid #ccc" }}
+						style={{
+							padding: "12px",
+							borderRadius: "8px",
+							border: "1px solid #1976d2",
+							fontSize: "1rem",
+							width: "100%",
+						}}
 					/>
 					<input
 						type="text"
 						placeholder="City"
 						value={city}
 						onChange={(e) => setCity(e.target.value)}
-						style={{ padding: "8px", borderRadius: "4px", border: "1px solid #ccc" }}
+						style={{
+							padding: "12px",
+							borderRadius: "8px",
+							border: "1px solid #1976d2",
+							fontSize: "1rem",
+							width: "100%",
+						}}
 					/>
 				</Stack>
-				<Stack spacing={2}>
+				<Stack spacing={3}>
 					{venues.map((venue) => (
-						<Card key={venue.id} sx={{ borderRadius: "8px" }}>
+						<Card key={venue.id} sx={{ borderRadius: "16px", boxShadow: 2, background: "#fff" }}>
 							<CardContent>
-								<Typography variant="h6">{venue.name}</Typography>
-								<Typography color="text.secondary">{venue.city}</Typography>
-								<Typography color="text.secondary">Starting at ₹{venue.startingPricePerHour} /hr</Typography>
-								<Typography variant="subtitle1" sx={{ mt: 2 }}>
+								<Typography variant="h5" sx={{ color: "#1976d2", fontWeight: "bold" }}>
+									{venue.name}
+								</Typography>
+								<Typography color="text.secondary" sx={{ fontSize: "1.1rem" }}>
+									{venue.city}
+								</Typography>
+								<Typography color="text.secondary" sx={{ fontSize: "1.1rem" }}>
+									Starting at ₹{venue.startingPricePerHour} /hr
+								</Typography>
+								<Typography variant="subtitle1" sx={{ mt: 2, color: "#1976d2", fontWeight: "bold" }}>
 									Courts:
 								</Typography>
 								<List>
-									{(venue.courts || []).map((court: any) => (
-										<ListItem key={court.id} sx={{ display: "flex", alignItems: "center" }}>
-											<ListItemText
-												primary={`${court.name} (${court.sport})`}
-												secondary={`Price: ₹${court.pricePerHour}/hr`}
-											/>
-											<button
-												style={{
-													marginLeft: "16px",
-													padding: "8px 16px",
-													borderRadius: "4px",
-													background: "#1976d2",
-													color: "#fff",
-													border: "none",
-													cursor: "pointer",
+									{(venue.courts || []).map((court: any) => {
+										const booking = userBookings.find((b) => b.courtId === court.id);
+										return (
+											<ListItem
+												key={court.id}
+												sx={{
+													display: "flex",
+													alignItems: "center",
+													background: booking ? "#e3f2fd" : "inherit",
+													borderRadius: "8px",
+													mb: 1,
 												}}
-												onClick={() => setBookingDialog({ open: true, court, venue })}
 											>
-												Book
-											</button>
-										</ListItem>
-									))}
+												<ListItemText
+													primary={
+														<span style={{ fontWeight: "bold", color: booking ? "#1976d2" : "#333" }}>
+															{court.name} ({court.sport})
+														</span>
+													}
+													secondary={
+														<span style={{ color: booking ? "#1976d2" : "#555" }}>Price: ₹{court.pricePerHour}/hr</span>
+													}
+												/>
+												{booking ? (
+													<Box sx={{ ml: 2, p: 2, background: "#bbdefb", borderRadius: "8px", minWidth: 220 }}>
+														<Typography variant="body2" sx={{ color: "#1976d2", fontWeight: "bold" }}>
+															Your Booking
+														</Typography>
+														<Typography variant="body2">
+															Start: {new Date(booking.startsAt).toLocaleString()}
+														</Typography>
+														<Typography variant="body2">End: {new Date(booking.endsAt).toLocaleString()}</Typography>
+														<Typography variant="body2">Status: {booking.status}</Typography>
+														<Typography variant="body2">Total: ₹{booking.totalPrice}</Typography>
+													</Box>
+												) : (
+													<button
+														style={{
+															marginLeft: "16px",
+															padding: "10px 24px",
+															borderRadius: "8px",
+															background: "linear-gradient(90deg,#1976d2 0%,#42a5f5 100%)",
+															color: "#fff",
+															border: "none",
+															fontWeight: "bold",
+															fontSize: "1rem",
+															cursor: "pointer",
+															boxShadow: "0 2px 8px rgba(25,118,210,0.15)",
+															transition: "background 0.3s",
+														}}
+														onClick={() => setBookingDialog({ open: true, court, venue })}
+													>
+														Book
+													</button>
+												)}
+											</ListItem>
+										);
+									})}
 									{(venue.courts || []).length === 0 && (
 										<ListItem>
 											<ListItemText primary="No courts available." />
@@ -188,9 +261,12 @@ export function OverviewLayout(): React.JSX.Element {
 					))}
 				</Stack>
 				{bookingDialog.open && bookingDialog.court && (
-					<Card elevation={6} sx={{ maxWidth: 400, mx: "auto", mt: 2 }}>
+					<Card
+						elevation={6}
+						sx={{ maxWidth: 400, mx: "auto", mt: 2, borderRadius: "16px", boxShadow: 4, background: "#e3f2fd" }}
+					>
 						<CardContent>
-							<Typography variant="h6" gutterBottom>
+							<Typography variant="h6" gutterBottom sx={{ color: "#1976d2", fontWeight: "bold" }}>
 								Book Court: {bookingDialog.court.name} ({bookingDialog.court.sport})
 							</Typography>
 							<Typography color="text.secondary" gutterBottom>
@@ -201,22 +277,26 @@ export function OverviewLayout(): React.JSX.Element {
 									type="datetime-local"
 									value={bookingForm.startsAt}
 									onChange={(e) => setBookingForm((f) => ({ ...f, startsAt: e.target.value }))}
-									style={{ padding: "8px", borderRadius: "4px", border: "1px solid #ccc" }}
+									style={{ padding: "10px", borderRadius: "8px", border: "1px solid #1976d2", fontSize: "1rem" }}
 								/>
 								<input
 									type="datetime-local"
 									value={bookingForm.endsAt}
 									onChange={(e) => setBookingForm((f) => ({ ...f, endsAt: e.target.value }))}
-									style={{ padding: "8px", borderRadius: "4px", border: "1px solid #ccc" }}
+									style={{ padding: "10px", borderRadius: "8px", border: "1px solid #1976d2", fontSize: "1rem" }}
 								/>
 								<button
 									style={{
-										padding: "8px 16px",
-										borderRadius: "4px",
-										background: "#1976d2",
+										padding: "10px 24px",
+										borderRadius: "8px",
+										background: "linear-gradient(90deg,#1976d2 0%,#42a5f5 100%)",
 										color: "#fff",
 										border: "none",
+										fontWeight: "bold",
+										fontSize: "1rem",
 										cursor: "pointer",
+										boxShadow: "0 2px 8px rgba(25,118,210,0.15)",
+										transition: "background 0.3s",
 									}}
 									onClick={handleBookCourt}
 									disabled={isBooking}
@@ -225,11 +305,13 @@ export function OverviewLayout(): React.JSX.Element {
 								</button>
 								<button
 									style={{
-										padding: "8px 16px",
-										borderRadius: "4px",
+										padding: "10px 24px",
+										borderRadius: "8px",
 										background: "#aaa",
 										color: "#fff",
 										border: "none",
+										fontWeight: "bold",
+										fontSize: "1rem",
 										cursor: "pointer",
 									}}
 									onClick={() => setBookingDialog({ open: false })}
