@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,218 +7,87 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ---------- Auth & Accounts ----------
 model User {
-  id              String    @id @default(cuid())
-  email           String    @unique
+  id              String     @id @default(cuid())
+  email           String     @unique
   password        String
   fullName        String
   avatarUrl       String?
-  role            Role      @default(USER)
+  role            Role       @default(USER)
   emailVerifiedAt DateTime?
   createdAt       Int
   updatedAt       Int
-
-  sessions   Session[]
-  otps       OtpCode[]
-  // relations
-  facilities Facility[] @relation("OwnerFacilities")
-  bookings   Booking[]
-  reviews    Review[]
+  facilities      Facility[] @relation("OwnerFacilities")
+  bookings        Booking[]
+  reviews         Review[]
 }
 
-model Session {
-  id           String   @id @default(cuid())
-  userId       String
-  refreshToken String   @unique // store hashed if you want
-  userAgent    String?
-  ip           String?
-  expiresAt    DateTime
-  createdAt    DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model OtpCode {
-  id         String    @id @default(cuid())
-  userId     String
-  code       String // store bcrypt hash of the 6-digit OTP
-  purpose    String // "SIGNUP" (can add others later)
-  expiresAt  DateTime
-  consumedAt DateTime?
-  attempts   Int       @default(0)
-  createdAt  DateTime  @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, purpose])
-  @@index([expiresAt])
-}
-
-// ---------- Catalog ----------
-model Sport {
-  id   Int     @id @default(autoincrement())
-  name String  @unique // e.g., "Badminton", "Football"
-  slug String  @unique
-  icon String? // optional UI asset
-
-  courts Court[]
-}
-
-// Amenities are generic tags (WiFi, Parking, Locker, etc.)
-model Amenity {
-  id         Int               @id @default(autoincrement())
-  name       String            @unique
-  icon       String?
-  facilities FacilityAmenity[]
-}
-
-// ---------- Facilities & Courts ----------
 model Facility {
-  id          String         @id @default(cuid())
-  ownerId     String
-  name        String
-  slug        String         @unique
-  description String?
-  address     String
-  city        String
-  state       String?
-  pincode     String?
-  lat         Float?
-  lng         Float?
-  status      FacilityStatus @default(PENDING)
-  statusNote  String? // admin comment for reject
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  id                   String         @id @default(cuid())
+  ownerId              String
+  name                 String
+  address              String
+  city                 String
+  startingPricePerHour Int
+  rating               Float?
+  status               FacilityStatus @default(PENDING)
+  createdAt            Int
+  updatedAt            Int
 
-  owner     User              @relation("OwnerFacilities", fields: [ownerId], references: [id])
-  photos    FacilityPhoto[]
-  courts    Court[]
-  amenities FacilityAmenity[]
-  reviews   Review[]
+  owner   User     @relation("OwnerFacilities", fields: [ownerId], references: [id])
+  courts  Court[]
+  reviews Review[]
+
+  @@index([city])
+  @@index([status])
 }
 
-model FacilityPhoto {
-  id         String  @id @default(cuid())
-  facilityId String
-  url        String
-  caption    String?
-  sortOrder  Int     @default(0)
-
-  facility Facility @relation(fields: [facilityId], references: [id], onDelete: Cascade)
-}
-
-model FacilityAmenity {
-  facilityId String
-  amenityId  Int
-
-  facility Facility @relation(fields: [facilityId], references: [id], onDelete: Cascade)
-  amenity  Amenity  @relation(fields: [amenityId], references: [id], onDelete: Cascade)
-
-  @@id([facilityId, amenityId])
-}
-
-// Each facility has many courts; each court belongs to one sport
 model Court {
-  id           String   @id @default(cuid())
+  id           String @id @default(cuid())
   facilityId   String
   name         String
-  sportId      Int
-  pricePerHour Int // in smallest currency unit (e.g., paise)
-  // Optional: dynamic pricing table can be added later
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  sport        Sport
+  pricePerHour Int
+  createdAt    Int
+  updatedAt    Int
 
-  facility     Facility            @relation(fields: [facilityId], references: [id], onDelete: Cascade)
-  sport        Sport               @relation(fields: [sportId], references: [id])
-  availability CourtAvailability[]
-  blocks       CourtBlock[]
-  bookings     Booking[]
+  facility Facility  @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  bookings Booking[]
 
-  @@unique([facilityId, name]) // unique court names within facility
+  @@unique([facilityId, name])
+  @@index([sport])
 }
 
-// Weekly recurring operating hours per court (e.g., Mon 06:00–22:00)
-model CourtAvailability {
-  id        String @id @default(cuid())
-  courtId   String
-  weekday   Int // 0=Sun .. 6=Sat
-  startTime Int // minutes from midnight (e.g., 360 for 6:00)
-  endTime   Int // minutes from midnight
-
-  court Court @relation(fields: [courtId], references: [id], onDelete: Cascade)
-
-  @@index([courtId, weekday])
-}
-
-// One-off blocks for maintenance/holidays (exact datetime range in local time)
-model CourtBlock {
-  id       String   @id @default(cuid())
-  courtId  String
-  startsAt DateTime
-  endsAt   DateTime
-  reason   String?
-
-  court Court @relation(fields: [courtId], references: [id], onDelete: Cascade)
-
-  @@index([courtId, startsAt, endsAt])
-}
-
-// ---------- Booking & Payments ----------
 model Booking {
   id         String        @id @default(cuid())
   userId     String
   courtId    String
-  date       DateTime // normalized to slot start date
   startsAt   DateTime
   endsAt     DateTime
-  hours      Float
-  unitPrice  Int // pricePerHour at booking time (paise)
-  totalPrice Int // computed = hours * unitPrice
+  totalPrice Int
   status     BookingStatus @default(PENDING_PAYMENT)
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
 
-  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  court   Court    @relation(fields: [courtId], references: [id], onDelete: Cascade)
-  payment Payment?
-  review  Review?
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  court Court @relation(fields: [courtId], references: [id], onDelete: Cascade)
 
-  // Prevent exact duplicate slot; actual overlap checks must be done in code with a transaction
   @@unique([courtId, startsAt, endsAt])
-  @@index([userId, date])
+  @@index([userId, startsAt])
 }
 
-model Payment {
-  id          String        @id @default(cuid())
-  bookingId   String        @unique
-  amount      Int // paise
-  status      PaymentStatus @default(INITIATED)
-  provider    String? // "RAZORPAY" / "STRIPE" / "SIMULATED"
-  referenceId String? // gateway ref
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-
-  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-}
-
-// ---------- Reviews ----------
 model Review {
   id         String   @id @default(cuid())
   userId     String
   facilityId String
-  bookingId  String?  @unique // optional; if you want "verified" reviews, make this required
-  rating     Int // 1..5
-  title      String?
+  rating     Int
   comment    String?
   createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
 
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   facility Facility @relation(fields: [facilityId], references: [id], onDelete: Cascade)
-  booking  Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
 
-  @@unique([userId, facilityId, bookingId]) // one review per booking (or per facility if bookingId null)
+  @@unique([userId, facilityId])
   @@index([facilityId])
 }
 
@@ -237,7 +100,14 @@ enum Role {
 enum FacilityStatus {
   PENDING
   APPROVED
-  REJECTED
+}
+
+enum Sport {
+  BADMINTON
+  FOOTBALL
+  TENNIS
+  TABLE_TENNIS
+  CRICKET
 }
 
 enum BookingStatus {
@@ -245,11 +115,4 @@ enum BookingStatus {
   CONFIRMED
   CANCELLED
   COMPLETED
-}
-
-enum PaymentStatus {
-  INITIATED
-  PAID
-  FAILED
-  REFUNDED
 }

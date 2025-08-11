@@ -10,6 +10,7 @@ export enum ServerCodes {
 export enum ApiNames {
 	Login = "login",
 	Signup = "signup",
+	Venue = "venues",
 }
 
 export class Constants {

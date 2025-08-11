@@ -3,9 +3,11 @@ import type { Viewport } from "next";
 
 import "@/styles/global.css";
 
+import { ConfirmationDialogProvider } from "@/contexts/confirmation";
 import { ProgressProvider } from "@/contexts/progress-context";
 import { ToastProvider } from "@/contexts/toast-context";
 import { UserProvider } from "@/contexts/user-context";
+import GlobalConfirmationDialog from "@/components/core/global-confirmation-dialog";
 import { LocalizationProvider } from "@/components/core/localization-provider";
 import { ThemeProvider } from "@/components/core/theme-provider/theme-provider";
 
@@ -21,11 +23,14 @@ export default function Layout({ children }: LayoutProps): React.JSX.Element {
 			<body>
 				<LocalizationProvider>
 					<UserProvider>
-						<ProgressProvider>
-							<ToastProvider>
-								<ThemeProvider>{children}</ThemeProvider>
-							</ToastProvider>
-						</ProgressProvider>
+						<ConfirmationDialogProvider>
+							<ProgressProvider>
+								<GlobalConfirmationDialog />
+								<ToastProvider>
+									<ThemeProvider>{children}</ThemeProvider>
+								</ToastProvider>
+							</ProgressProvider>
+						</ConfirmationDialogProvider>
 					</UserProvider>
 				</LocalizationProvider>
 			</body>

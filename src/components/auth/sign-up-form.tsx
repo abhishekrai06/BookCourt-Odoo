@@ -161,7 +161,6 @@ export function SignUpForm(): React.JSX.Element {
 						name="role"
 						render={({ field }) => (
 							<FormControl error={Boolean(errors.role)} fullWidth>
-								<InputLabel htmlFor="role">Role</InputLabel>
 								<select
 									{...field}
 									id="role"
