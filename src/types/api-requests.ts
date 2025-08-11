@@ -13,6 +13,7 @@ export interface VenuePostRequestData {
 	name: string;
 	address: string;
 	city: string;
+	images: string[];
 	startingPricePerHour: number;
 	courts: VenueCourts[];
 }
@@ -28,6 +29,7 @@ export interface VenuePutRequestData {
 	name: string;
 	address: string;
 	city: string;
+	images: string[];
 	startingPricePerHour: number;
 	courts: Courts[];
 }

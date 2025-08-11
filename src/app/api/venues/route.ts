@@ -64,6 +64,7 @@ const postValidation = Joi.object({
 		"number.min": "Starting price per hour must be at least 0",
 		"any.required": "Starting price per hour is required",
 	}),
+	images: Joi.array().items(Joi.string()).optional(),
 	courts: Joi.array().items(courtSchema).min(1).required().messages({
 		"array.min": "At least one court is required",
 		"any.required": "Courts are required",
@@ -127,6 +128,7 @@ export async function POST(request: NextRequest) {
 				data: {
 					ownerId: userId,
 					name: value.name,
+					images: value.images ? JSON.stringify(value.images) : null,
 					address: value.address,
 					city: value.city,
 					startingPricePerHour: value.startingPricePerHour,
@@ -150,6 +152,10 @@ export async function POST(request: NextRequest) {
 			);
 			return { ...facility, courts };
 		});
+		// Parse images JSON before returning
+		if (newVenue.images) {
+			newVenue.images = JSON.parse(newVenue.images);
+		}
 		response.code = ServerCodes.Success;
 		response.message = "Venue added successfully";
 		response.data = [newVenue];
@@ -180,8 +186,21 @@ export async function GET(request: NextRequest) {
 				response.message = "Venue not found.";
 				return NextResponse.json(response, { status: 400 });
 			}
+			// Create a response object with images parsed as array
+			const venueResponse = {
+				...venue,
+				images: venue.images
+					? (() => {
+							try {
+								return JSON.parse(venue.images);
+							} catch {
+								return [];
+							}
+						})()
+					: [],
+			};
 			response.code = ServerCodes.Success;
-			response.data = [venue];
+			response.data = [venueResponse];
 			response.message = "Venue details fetched successfully.";
 			return NextResponse.json(response, { status: 200 });
 		}
@@ -189,13 +208,25 @@ export async function GET(request: NextRequest) {
 		const where: any = query ? { name: { contains: query } } : {};
 
 		const totalCount = await prisma.facility.count({ where });
-		const venues = await prisma.facility.findMany({
+		const venuesRaw = await prisma.facility.findMany({
 			skip,
 			take: pageSize,
 			where,
 			include: { courts: true },
 		});
-
+		// Create response objects with images parsed as array
+		const venues = venuesRaw.map((venue) => ({
+			...venue,
+			images: venue.images
+				? (() => {
+						try {
+							return JSON.parse(venue.images);
+						} catch {
+							return [];
+						}
+					})()
+				: [],
+		}));
 		response.code = ServerCodes.Success;
 		response.currentPage = page;
 		response.pageSize = pageSize;
@@ -238,6 +269,7 @@ export async function PUT(request: NextRequest) {
 				address: value.address,
 				city: value.city,
 				startingPricePerHour: value.startingPricePerHour,
+				images: value.images ? JSON.stringify(value.images) : null,
 				updatedAt: Math.floor(Date.now() / 1000),
 			};
 			if (value.status) {
@@ -295,8 +327,24 @@ export async function PUT(request: NextRequest) {
 			return venueWithCourts;
 		});
 
+		// Parse images JSON before returning
+		let updatedVenueResponse = null;
+		if (updatedVenue) {
+			updatedVenueResponse = {
+				...updatedVenue,
+				images: updatedVenue.images
+					? (() => {
+							try {
+								return JSON.parse(updatedVenue.images);
+							} catch {
+								return [];
+							}
+						})()
+					: [],
+			};
+		}
 		response.code = ServerCodes.Success;
-		response.data = [updatedVenue];
+		response.data = updatedVenueResponse ? [updatedVenueResponse] : [];
 		response.message = "Venue updated successfully.";
 		return NextResponse.json(response, { status: 200 });
 	} catch (error) {

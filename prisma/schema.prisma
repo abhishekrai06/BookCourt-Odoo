@@ -33,6 +33,7 @@ model Facility {
   startingPricePerHour Int
   rating               Float?
   status               FacilityStatus @default(PENDING)
+  images               String?        @db.LongText
   createdAt            Int
   updatedAt            Int
 

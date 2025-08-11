@@ -561,7 +561,7 @@ export function OverviewLayout(): React.JSX.Element {
 									boxShadow: "0 2px 8px rgba(25,118,210,0.15)",
 									transition: "background 0.3s",
 								}}
-								onClick={() => (window.location.href = "/dashboard/venues")}
+								onClick={() => (window.location.href = "/dashboard/customers")}
 							>
 								Go to My Venues
 							</button>
@@ -581,6 +581,23 @@ export function OverviewLayout(): React.JSX.Element {
 								onClick={() => (window.location.href = "/dashboard/profile")}
 							>
 								Go to Profile
+							</button>
+							<button
+								style={{
+									padding: "16px 32px",
+									borderRadius: "12px",
+									background: "linear-gradient(90deg,#42a5f5 0%,#1976d2 100%)",
+									color: "#fff",
+									border: "none",
+									fontWeight: "bold",
+									fontSize: "1.2rem",
+									cursor: "pointer",
+									boxShadow: "0 2px 8px rgba(25,118,210,0.15)",
+									transition: "background 0.3s",
+								}}
+								onClick={() => (window.location.href = "/dashboard/bookings")}
+							>
+								Manage Bookings
 							</button>
 						</Stack>
 					</CardContent>

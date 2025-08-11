@@ -7,6 +7,7 @@ export interface Venue {
 	startingPricePerHour: number;
 	rating: number;
 	status: string;
+	images?: string[];
 	courts: Courts[];
 	createdAt: number;
 	updatedAt: number;

@@ -52,6 +52,7 @@ const schema = zod.object({
 	address: zod.string().min(1, { message: "Address is required" }),
 	city: zod.string().min(1, { message: "City is required" }),
 	startingPricePerHour: zod.number().min(0, { message: "Starting price per hour is required" }),
+	images: zod.array(zod.string()).optional(),
 	courts: zod.array(courtSchema).min(1, { message: "At least one court is required" }),
 });
 
@@ -62,6 +63,7 @@ const defaultValues: Values = {
 	address: "",
 	city: "",
 	startingPricePerHour: 0,
+	images: [],
 	courts: [],
 };
 
@@ -72,12 +74,17 @@ const AddVenueDialogBox: React.FC<{
 	onAddVenue?: (venue?: Values) => void;
 }> = ({ open, onClose, venue, onAddVenue }) => {
 	const [isPending, setIsPending] = React.useState(false);
+	// Store both existing images and new uploads
+	const [existingImages, setExistingImages] = React.useState<string[]>(venue?.images ?? []);
+	const [newImageFiles, setNewImageFiles] = React.useState<File[]>([]);
+	const [newImagePreviews, setNewImagePreviews] = React.useState<string[]>([]);
 	const { showToast } = useToast();
 
 	const {
 		register,
 		control,
 		handleSubmit,
+		setValue,
 		formState: { errors },
 		reset,
 	} = useForm<Values>({
@@ -87,6 +94,7 @@ const AddVenueDialogBox: React.FC<{
 					address: venue.address,
 					city: venue.city,
 					startingPricePerHour: venue.startingPricePerHour,
+					images: venue.images ?? [],
 					courts:
 						venue.courts?.map((court) => ({
 							name: court.name,
@@ -133,6 +141,8 @@ const AddVenueDialogBox: React.FC<{
 		async (values: Values): Promise<void> => {
 			setIsPending(true);
 			let result;
+			// Combine existing images and new uploads
+			const images = [...existingImages, ...newImagePreviews];
 			if (venue) {
 				const filteredCourts = values.courts?.filter((c) => c.name && c.name.trim() !== "") || [];
 				const mappedCourts = filteredCourts.map((court, idx) => {
@@ -153,9 +163,9 @@ const AddVenueDialogBox: React.FC<{
 					address: values.address,
 					city: values.city,
 					startingPricePerHour: values.startingPricePerHour,
+					images,
 					courts: mappedCourts,
 				};
-
 				result = await updateVenue(requestData);
 			} else {
 				const filteredCourts = values.courts?.filter((c) => c.name && c.name.trim() !== "") || [];
@@ -169,6 +179,7 @@ const AddVenueDialogBox: React.FC<{
 					address: values.address,
 					city: values.city,
 					startingPricePerHour: values.startingPricePerHour,
+					images,
 					courts: mappedCourts,
 				};
 				result = await createVenue(requestData);
@@ -187,6 +198,7 @@ const AddVenueDialogBox: React.FC<{
 								address: result.data[0].address,
 								city: result.data[0].city,
 								startingPricePerHour: result.data[0].startingPricePerHour,
+								images: result.data[0].images ?? [],
 								courts:
 									result.data[0].courts?.map((court) => ({
 										name: court.name,
@@ -200,13 +212,19 @@ const AddVenueDialogBox: React.FC<{
 			showToast("Venue details updated successfully", "success");
 			onClose();
 			reset();
+			setExistingImages([]);
+			setNewImageFiles([]);
+			setNewImagePreviews([]);
 		},
-		[showToast, onClose, reset]
+		[showToast, onClose, reset, existingImages, newImagePreviews, venue]
 	);
 
 	const onDialogDismissed = () => {
 		onClose();
 		reset();
+		setExistingImages([]);
+		setNewImageFiles([]);
+		setNewImagePreviews([]);
 	};
 
 	return (
@@ -251,6 +269,94 @@ const AddVenueDialogBox: React.FC<{
 									helperText={errors.startingPricePerHour?.message}
 								/>
 							</Stack>
+						</Stack>
+					</Paper>
+					{/* Venue Images */}
+					<Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+						<Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
+							Venue Images
+						</Typography>
+						<Button variant="outlined" component="label">
+							Upload Images
+							<input
+								type="file"
+								accept="image/*"
+								multiple
+								hidden
+								onChange={async (e) => {
+									const files = Array.from(e.target.files || []);
+									setNewImageFiles(files);
+									// Convert to base64
+									const previews: string[] = [];
+									for (const file of files) {
+										const reader = new FileReader();
+										const result = await new Promise<string>((resolve) => {
+											reader.onload = () => resolve(reader.result as string);
+											reader.readAsDataURL(file);
+										});
+										previews.push(result);
+									}
+									setNewImagePreviews(previews);
+								}}
+							/>
+						</Button>
+						<Stack direction="row" spacing={2} sx={{ mt: 2, flexWrap: "wrap" }}>
+							{/* Existing images (when editing) */}
+							{existingImages.map((src, idx) => (
+								<Box
+									key={"existing-" + idx}
+									sx={{
+										width: 80,
+										height: 80,
+										border: "1px solid #ccc",
+										borderRadius: 2,
+										overflow: "hidden",
+										position: "relative",
+									}}
+								>
+									<img
+										src={src}
+										alt={`venue-img-${idx}`}
+										style={{ width: "100%", height: "100%", objectFit: "cover" }}
+									/>
+									<Button
+										size="small"
+										color="error"
+										sx={{ position: "absolute", top: 2, right: 2, minWidth: 0, padding: 0 }}
+										onClick={() => setExistingImages(existingImages.filter((_, i) => i !== idx))}
+									>
+										✕
+									</Button>
+								</Box>
+							))}
+							{/* New uploads */}
+							{newImagePreviews.map((src, idx) => (
+								<Box
+									key={"new-" + idx}
+									sx={{
+										width: 80,
+										height: 80,
+										border: "1px solid #ccc",
+										borderRadius: 2,
+										overflow: "hidden",
+										position: "relative",
+									}}
+								>
+									<img
+										src={src}
+										alt={`venue-img-new-${idx}`}
+										style={{ width: "100%", height: "100%", objectFit: "cover" }}
+									/>
+									<Button
+										size="small"
+										color="error"
+										sx={{ position: "absolute", top: 2, right: 2, minWidth: 0, padding: 0 }}
+										onClick={() => setNewImagePreviews(newImagePreviews.filter((_, i) => i !== idx))}
+									>
+										✕
+									</Button>
+								</Box>
+							))}
 						</Stack>
 					</Paper>
 

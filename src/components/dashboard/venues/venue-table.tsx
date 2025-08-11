@@ -2,11 +2,22 @@
 
 import * as React from "react";
 import { ApiNames, ServerCodes } from "@/app/constants/constants";
+import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
-import { Button, CardContent, Dialog, DialogContent, IconButton, TextField, Typography } from "@mui/material";
+import {
+	Button,
+	CardContent,
+	Dialog,
+	DialogActions,
+	DialogContent,
+	DialogTitle,
+	IconButton,
+	Typography,
+} from "@mui/material";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import Collapse from "@mui/material/Collapse";
@@ -49,21 +60,21 @@ export function VenuesTable(): React.JSX.Element {
 	// Approve/reject venue status
 	const handleVenueStatusUpdate = async (venueId: string, status: "APPROVED" | "REJECTED") => {
 		try {
-			// Fetch venue details
 			const response: ApiResponse = await getData(ApiNames.Venue, { id: venueId });
 			if (response.code !== ServerCodes.Success || !response.data?.[0]) {
 				showToast(response.message || "Venue not found", "error");
 				return;
 			}
 			const venue = response.data[0];
-			// Prepare courts for PUT
+
+			// Clean courts
 			const cleanCourts = Array.isArray(venue.courts)
 				? venue.courts.map((court: { facilityId?: string; createdAt?: any; updatedAt?: any; [key: string]: any }) => {
 						const { facilityId, createdAt, updatedAt, ...rest } = court;
 						return rest;
 					})
 				: [];
-			// Only send allowed fields for PUT: id, ownerId, name, address, city, startingPricePerHour, courts, status
+
 			const { id, ownerId, name, address, city, startingPricePerHour } = venue;
 			const updatePayload = {
 				id,
@@ -75,6 +86,7 @@ export function VenuesTable(): React.JSX.Element {
 				courts: cleanCourts,
 				status,
 			};
+
 			const putResponse: ApiResponse = await putData(ApiNames.Venue, updatePayload);
 			if (putResponse.code === ServerCodes.Success) {
 				showToast(`Venue status updated to ${status}`, "success");
@@ -82,11 +94,12 @@ export function VenuesTable(): React.JSX.Element {
 			} else {
 				showToast(putResponse.message || "Failed to update status", "error");
 			}
-		} catch (err) {
+		} catch {
 			showToast("Failed to update venue status", "error");
 		}
 	};
-	// Get user role from localStorage
+
+	// Role
 	const [role, setRole] = React.useState<string | null>(null);
 	React.useEffect(() => {
 		try {
@@ -99,6 +112,7 @@ export function VenuesTable(): React.JSX.Element {
 			setRole(null);
 		}
 	}, []);
+
 	const [open, setOpen] = React.useState(false);
 	const [venueToEdit, setVenueToEdit] = React.useState<Venue | undefined>();
 	const [data, setData] = React.useState<Venue[]>([]);
@@ -107,8 +121,19 @@ export function VenuesTable(): React.JSX.Element {
 	const [rowsPerPage, setRowsPerPage] = React.useState(5);
 	const [searchTerm, setSearchTerm] = React.useState("");
 	const [totalRows, setTotalRows] = React.useState(0);
+	const [galleryOpen, setGalleryOpen] = React.useState(false);
+	const [galleryImages, setGalleryImages] = React.useState<string[]>([]);
 	const { showToast } = useToast();
 	const { showConfirmationDialog } = useConfirmationDialog();
+
+	const handleOpenGallery = (images?: string[]) => {
+		setGalleryImages(images ?? []);
+		setGalleryOpen(true);
+	};
+	const handleCloseGallery = () => {
+		setGalleryOpen(false);
+		setGalleryImages([]);
+	};
 
 	const handlePageChange = (_: unknown, newPage: number) => {
 		setPage(newPage + 1);
@@ -123,10 +148,7 @@ export function VenuesTable(): React.JSX.Element {
 		setVenueToEdit(undefined);
 		setOpen(true);
 	};
-
-	const handleClose = () => {
-		setOpen(false);
-	};
+	const handleClose = () => setOpen(false);
 
 	const onEditClicked = async (venue: Venue) => {
 		try {
@@ -136,7 +158,6 @@ export function VenuesTable(): React.JSX.Element {
 				return;
 			}
 			const fullVenue = response.data ? (response.data[0] as Venue) : undefined;
-			console.log(fullVenue);
 			setVenueToEdit(fullVenue);
 			setOpen(true);
 		} catch (error) {
@@ -173,14 +194,11 @@ export function VenuesTable(): React.JSX.Element {
 
 	const fetchData = async (page: number, rowsPerPage: number, searchTerm: string) => {
 		try {
-			// If admin, fetch all venues (no ownerId filter)
 			const params: Record<string, string> = {
 				page: page.toString(),
 				pageSize: rowsPerPage.toString(),
 				query: searchTerm,
 			};
-			// If not admin, you may want to filter by ownerId (existing logic)
-			// For now, always show all venues for admin
 			const response: ApiResponse = await getData(ApiNames.Venue, params);
 			if (response.code !== ServerCodes.Success) {
 				showToast(response.message || "Failed to fetch venues", "error");
@@ -202,7 +220,6 @@ export function VenuesTable(): React.JSX.Element {
 		setPage(1);
 	};
 
-	// Simple stub so the Export button compiles (replace with real export later)
 	const handleExportToExcel = () => {
 		showToast("Export coming soon", "info");
 	};
@@ -210,11 +227,10 @@ export function VenuesTable(): React.JSX.Element {
 	return (
 		<>
 			<Stack spacing={3}>
-				<Stack direction="row">
-					<Stack spacing={1} sx={{ flex: "1 1 auto" }}>
-						<Typography variant="h4">Venues</Typography>
-					</Stack>
-					<Stack direction="row" spacing={3}>
+				{/* Header Bar */}
+				<Stack direction="row" alignItems="center" justifyContent="space-between">
+					<Typography variant="h4">Venues</Typography>
+					<Stack direction="row" spacing={2} alignItems="center">
 						<VenueFilters onSearch={handleSearch} />
 						<Button
 							color="inherit"
@@ -231,12 +247,15 @@ export function VenuesTable(): React.JSX.Element {
 						>
 							Add
 						</Button>
-						{open ? (
-							<AddVenueDialogBox open={open} onClose={handleClose} venue={venueToEdit} onAddVenue={handleAddVenue} />
-						) : null}
 					</Stack>
 				</Stack>
 
+				{/* Add/Edit Dialog */}
+				{open && (
+					<AddVenueDialogBox open={open} onClose={handleClose} venue={venueToEdit} onAddVenue={handleAddVenue} />
+				)}
+
+				{/* Table */}
 				<Card>
 					<Box sx={{ overflowX: "auto" }}>
 						<Table style={styles.table} sx={{ minWidth: "800px" }}>
@@ -269,85 +288,84 @@ export function VenuesTable(): React.JSX.Element {
 												<TableCell style={styles.cell}>{venue.address}</TableCell>
 												<TableCell style={styles.cell}>{venue.city}</TableCell>
 												<TableCell style={styles.cell}>
-													{/* Only show edit/delete for non-admin */}
-													{role !== "ADMIN" && (
-														<>
-															<IconButton color="primary" onClick={() => onEditClicked(venue)}>
-																<EditIcon />
-															</IconButton>
-															<IconButton color="error" onClick={() => onDeleteClicked(venue.id)}>
-																<DeleteIcon />
-															</IconButton>
-														</>
-													)}
-													{/* Admin approve/reject icons and status display */}
-													{role === "ADMIN" && (
-														<Stack direction="row" spacing={1} alignItems="center">
-															{venue.status === "APPROVED" && (
-																<>
-																	<Typography color="success.main" fontWeight={600}>
-																		Approved
-																	</Typography>
-																	<span role="img" aria-label="approved">
-																		✔️
-																	</span>
-																	<IconButton
-																		color="error"
-																		title="Reject Venue"
-																		onClick={() => handleVenueStatusUpdate(venue.id, "REJECTED")}
-																	>
-																		<span role="img" aria-label="reject">
-																			❌
-																		</span>
-																	</IconButton>
-																</>
-															)}
-															{venue.status === "REJECTED" && (
-																<>
-																	<Typography color="error.main" fontWeight={600}>
-																		Rejected
-																	</Typography>
-																	<span role="img" aria-label="rejected">
-																		❌
-																	</span>
-																	<IconButton
-																		color="success"
-																		title="Approve Venue"
-																		onClick={() => handleVenueStatusUpdate(venue.id, "APPROVED")}
-																	>
-																		<span role="img" aria-label="approve">
-																			✔️
-																		</span>
-																	</IconButton>
-																</>
-															)}
-															{venue.status === "PENDING" && (
-																<>
-																	<Typography color="warning.main" fontWeight={600}>
-																		Pending
-																	</Typography>
-																	<IconButton
-																		color="success"
-																		title="Approve Venue"
-																		onClick={() => handleVenueStatusUpdate(venue.id, "APPROVED")}
-																	>
-																		<span role="img" aria-label="approve">
-																			✔️
-																		</span>
-																	</IconButton>
-																	<IconButton
-																		color="error"
-																		title="Reject Venue"
-																		onClick={() => handleVenueStatusUpdate(venue.id, "REJECTED")}
-																	>
-																		<span role="img" aria-label="reject">
-																			❌
-																		</span>
-																	</IconButton>
-																</>
-															)}
-														</Stack>
-													)}
+													<Stack direction="row" spacing={1} alignItems="center">
+														{/* Gallery */}
+														<Button
+															size="small"
+															variant="outlined"
+															onClick={() => handleOpenGallery(venue.images)}
+															disabled={!venue.images || venue.images.length === 0}
+														>
+															Gallery
+														</Button>
+
+														{/* Owner actions */}
+														{role !== "ADMIN" && (
+															<>
+																<IconButton color="primary" onClick={() => onEditClicked(venue)}>
+																	<EditIcon />
+																</IconButton>
+																<IconButton color="error" onClick={() => onDeleteClicked(venue.id)}>
+																	<DeleteIcon />
+																</IconButton>
+															</>
+														)}
+
+														{/* Admin status + actions */}
+														{role === "ADMIN" && (
+															<Stack direction="row" spacing={1} alignItems="center">
+																{venue.status === "APPROVED" && (
+																	<>
+																		<Typography color="success.main" fontWeight={600}>
+																			Approved
+																		</Typography>
+																		<IconButton
+																			color="error"
+																			title="Reject Venue"
+																			onClick={() => handleVenueStatusUpdate(venue.id, "REJECTED")}
+																		>
+																			<CancelOutlinedIcon />
+																		</IconButton>
+																	</>
+																)}
+																{venue.status === "REJECTED" && (
+																	<>
+																		<Typography color="error.main" fontWeight={600}>
+																			Rejected
+																		</Typography>
+																		<IconButton
+																			color="success"
+																			title="Approve Venue"
+																			onClick={() => handleVenueStatusUpdate(venue.id, "APPROVED")}
+																		>
+																			<CheckCircleOutlineIcon />
+																		</IconButton>
+																	</>
+																)}
+																{venue.status === "PENDING" && (
+																	<>
+																		<Typography color="warning.main" fontWeight={600}>
+																			Pending
+																		</Typography>
+																		<IconButton
+																			color="success"
+																			title="Approve Venue"
+																			onClick={() => handleVenueStatusUpdate(venue.id, "APPROVED")}
+																		>
+																			<CheckCircleOutlineIcon />
+																		</IconButton>
+																		<IconButton
+																			color="error"
+																			title="Reject Venue"
+																			onClick={() => handleVenueStatusUpdate(venue.id, "REJECTED")}
+																		>
+																			<CancelOutlinedIcon />
+																		</IconButton>
+																	</>
+																)}
+															</Stack>
+														)}
+													</Stack>
 												</TableCell>
 											</TableRow>
 
@@ -362,17 +380,19 @@ export function VenuesTable(): React.JSX.Element {
 																<Table size="small">
 																	<TableHead>
 																		<TableRow>
-																			<TableCell>Court Name</TableCell>
-																			<TableCell>Sport</TableCell>
-																			<TableCell>Price Per Hour</TableCell>
+																			<TableCell style={styles.cell}>Name</TableCell>
+																			<TableCell style={styles.cell}>Sport</TableCell>
+																			<TableCell style={styles.cell}>Price / hr</TableCell>
 																		</TableRow>
 																	</TableHead>
 																	<TableBody>
-																		{venue.courts!.map((court) => (
+																		{(venue.courts || []).map((court: any) => (
 																			<TableRow key={court.id}>
-																				<TableCell>{court.name}</TableCell>
-																				<TableCell>{court.sport}</TableCell>
-																				<TableCell>{court.pricePerHour}</TableCell>
+																				<TableCell style={styles.cell}>{court.name ?? "-"}</TableCell>
+																				<TableCell style={styles.cell}>{court.sport ?? "-"}</TableCell>
+																				<TableCell style={styles.cell}>
+																					{court.pricePerHour != null ? `₹${court.pricePerHour}` : "-"}
+																				</TableCell>
 																			</TableRow>
 																		))}
 																	</TableBody>
@@ -401,6 +421,36 @@ export function VenuesTable(): React.JSX.Element {
 					/>
 				</Card>
 			</Stack>
+
+			{/* Gallery Modal */}
+			<Dialog open={galleryOpen} onClose={handleCloseGallery} maxWidth="md" fullWidth>
+				<DialogTitle>Venue Gallery</DialogTitle>
+				<DialogContent>
+					<Stack direction="row" spacing={2} sx={{ flexWrap: "wrap" }}>
+						{Array.isArray(galleryImages) && galleryImages.length > 0 ? (
+							galleryImages.map((src, idx) => (
+								<Box
+									key={idx}
+									sx={{ width: 180, height: 180, border: "1px solid #ccc", borderRadius: 2, overflow: "hidden" }}
+								>
+									<img
+										src={src}
+										alt={`venue-gallery-img-${idx}`}
+										style={{ width: "100%", height: "100%", objectFit: "cover" }}
+									/>
+								</Box>
+							))
+						) : (
+							<Typography>No images available.</Typography>
+						)}
+					</Stack>
+				</DialogContent>
+				<DialogActions>
+					<Button onClick={handleCloseGallery} color="primary">
+						Close
+					</Button>
+				</DialogActions>
+			</Dialog>
 		</>
 	);
 }
