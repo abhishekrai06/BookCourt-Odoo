@@ -44,6 +44,11 @@ export async function POST(request: NextRequest) {
 			response.message = "Your account has been banned. Please contact support.";
 			return NextResponse.json(response, { status: 403 });
 		}
+		if (!user.emailVerifiedAt) {
+			response.code = ServerCodes.AuthError;
+			response.message = "Please verify your email address.";
+			return NextResponse.json(response, { status: 403 });
+		}
 		const isPasswordValid = await bcrypt.compare(password, user.password);
 		if (!isPasswordValid) {
 			response.code = ServerCodes.InvalidArgs;
