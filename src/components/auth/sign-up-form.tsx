@@ -26,7 +26,6 @@ import { useUser } from "@/hooks/use-user";
 const ROLE_OPTIONS = [
 	{ value: "USER", label: "User" },
 	{ value: "OWNER", label: "Owner" },
-	{ value: "ADMIN", label: "Admin" },
 ];
 
 const schema = zod
