@@ -1,90 +1,80 @@
-## [Devias Kit - React](https://material-kit-react.devias.io/)
+QuickCourt – Local Sports Booking Platform
 
-![license](https://img.shields.io/badge/license-MIT-blue.svg)
+Full-stack sports booking platform built with Next.js, TypeScript, Material UI, REST API, Prisma ORM, and MySQL, enabling users to book sports facilities and manage bookings seamlessly.
 
-[![Devias Kit - React](https://github.com/devias-io/material-kit-react/blob/main/public/assets/thumbnail.png)](https://material-kit-react.devias.io/)
+📽 Demo Video
+https://drive.google.com/file/d/1ZnkXYPA6hRPOB0bx18eFbTVfX4FBFBa-/view?usp=drive_link
 
-> Free React Admin Dashboard made with [MUI's](https://mui.com) components, [React](https://reactjs.org) and of course [Next.js](https://github.com/vercel/next.js) to boost your app development process!
+🚀 Features
+User Role
+Browse and search for local sports venues.
 
-## Pages 
+Filter by sport type, price, and venue type.
 
-- [Dashboard](https://material-kit-react.devias.io)
-- [Customers](https://material-kit-react.devias.io/dashboard/customers)
-- [Integrations](https://material-kit-react.devias.io/dashboard/integrations)
-- [Settings](https://material-kit-react.devias.io/dashboard/settings)
-- [Account](https://material-kit-react.devias.io/dashboard/account)
-- [Sign In](https://material-kit-react.devias.io/auth/sign-in)
-- [Sign Up](https://material-kit-react.devias.io/auth/sign-up)
-- [Reset Password](https://material-kit-react.devias.io/auth/reset-password)
+View venue details: description, amenities, photos.
 
-## Free Figma Community File
+Book courts with date and time slot selection.
 
-- [Duplicate File](https://www.figma.com/file/b3L1Np4RYiicZAOMopHNkm/Devias-Dashboard-Design-Library-Kit)
+Manage bookings via "My Bookings" page.
 
-## Upgrade to PRO Version
+Facility Owner Role
+Dashboard with booking overview.
 
-We also have a pro version of this product which bundles even more pages and components if you want
-to save more time and design efforts :)
+Add/Edit facility details.
 
-| Free Version (this one)  | [Devias Kit Pro](https://mui.com/store/items/devias-kit-pro/)                |
-| ------------------------ | :--------------------------------------------------------------------------- |
-| **8** Pages              | **80+** Pages                                                                |
-| ✔ Custom Authentication  | ✔ Authentication with **Amplify**, **Auth0**, **Firebase** and **Supabase**  |
-| -                        | ✔ Vite Version                                                               |
-| -                        | ✔ Dark Mode Support                                                          |
-| -                        | ✔ Complete Users Flows                                                       |
-| -                        | ✔ Premium Technical Support                                                  |
+Manage courts and pricing.
 
-## Quick start
+View upcoming and past bookings.
 
-- Clone the repo: `git clone https://github.com/devias-io/material-kit-react.git`
-- Make sure your Node.js and npm versions are up to date
-- Install dependencies: `npm install` or `yarn`
-- Start the server: `npm run dev` or `yarn dev`
-- Open browser: `http://localhost:3000`
+Admin Role
+Approve or reject facility registrations.
 
-## File Structure
+Manage users (ban/unban).
 
-Within the download you'll find the following directories and files:
+View platform statistics.
 
-```
-┌── .editorconfig
-├── .eslintrc.js
-├── .gitignore
-├── CHANGELOG.md
-├── LICENSE.md
-├── next-env.d.ts
-├── next.config.js
-├── package.json
-├── README.md
-├── tsconfig.json
-├── public
-└── src
-	├── components
-	├── contexts
-	├── hooks
-	├── lib
-	├── styles
-	├── types
-	└── app
-		├── layout.tsx
-		├── page.tsx
-		├── auth
-		└── dashboard
-```
+🛠 Technologies Used
+Frontend: Next.js, TypeScript, Material UI
 
-## Resources
+Backend: REST API, Prisma ORM
 
-- More freebies like this one: https://devias.io
+Database: MySQL
 
-## Reporting Issues:
+📂 File Structure
+vbnet
+Copy
+Edit
+public/
+src/
+├── components
+├── contexts
+├── hooks
+├── lib
+├── styles
+├── types
+└── app
+├── layout.tsx
+├── page.tsx
+├── auth/
+└── dashboard/
+⚡ Quick Start
+Clone the repository:
 
-- [Github Issues Page](https://github.com/devias-io/material-kit-react/issues)
+bash
+Copy
+Edit
+git clone BookCourt-Odoo
+cd quickcourt
+Install dependencies:
 
-## License
+bash
+Copy
+Edit
+npm install
+Start development server:
 
-- Licensed under [MIT](https://github.com/devias-io/material-kit-react/blob/main/LICENSE.md)
-
-## Contact Us
-
-- Email Us: support@deviasio.zendesk.com
+bash
+Copy
+Edit
+npm run dev
+Open in browser: http://localhost:3000
