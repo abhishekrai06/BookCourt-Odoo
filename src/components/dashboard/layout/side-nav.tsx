@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import RouterLink from "next/link";
 import { usePathname } from "next/navigation";
 import CopyrightIcon from "@mui/icons-material/Copyright";
@@ -54,6 +55,24 @@ export function SideNav(): React.JSX.Element {
 			<Stack spacing={2} sx={{ p: 3 }}>
 				<Box component={RouterLink} href={paths.home} sx={{ display: "inline-flex" }}>
 					<Logo color="light" height={32} width={122} />
+				</Box>
+				<Box
+					sx={{
+						height: 36,
+						width: 36,
+						borderRadius: "12px",
+						overflow: "hidden",
+						boxShadow: "0 0 0 1px rgba(255,255,255,0.06) inset",
+					}}
+				>
+					<Image
+						src="/assets/logo-medium.png"
+						alt="Book Court logo"
+						width={36} // your logo's actual width
+						height={36} // matches container height
+						style={{ height: "100%", width: "auto" }} // ensures aspect ratio is preserved
+						priority
+					/>
 				</Box>
 				<Typography color="var(--mui-palette-neutral-400)" variant="h3">
 					Book Court
