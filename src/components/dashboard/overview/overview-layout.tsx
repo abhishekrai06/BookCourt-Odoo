@@ -22,6 +22,7 @@ export function OverviewLayout(): React.JSX.Element {
 	const [venues, setVenues] = React.useState<Venue[]>([]);
 	const [search, setSearch] = React.useState("");
 	const [city, setCity] = React.useState("");
+	const [priceSort, setPriceSort] = React.useState<string>("");
 	const [bookingDialog, setBookingDialog] = React.useState<{ open: boolean; court?: any; venue?: any }>({
 		open: false,
 	});
@@ -221,11 +222,9 @@ export function OverviewLayout(): React.JSX.Element {
 							width: "100%",
 						}}
 					/>
-					<input
-						type="text"
-						placeholder="City"
-						value={city}
-						onChange={(e) => setCity(e.target.value)}
+					<select
+						value={priceSort}
+						onChange={(e) => setPriceSort(e.target.value)}
 						style={{
 							padding: "12px",
 							borderRadius: "8px",
@@ -233,162 +232,174 @@ export function OverviewLayout(): React.JSX.Element {
 							fontSize: "1rem",
 							width: "100%",
 						}}
-					/>
+					>
+						<option value="">Sort by Price</option>
+						<option value="low">Price: Low to High</option>
+						<option value="high">Price: High to Low</option>
+					</select>
 				</Stack>
 				<Stack spacing={3}>
-					{venues.map((venue) => (
-						<Card key={venue.id} sx={{ borderRadius: "16px", boxShadow: 2, background: "#fff" }}>
-							<CardContent>
-								<Typography variant="h5" sx={{ color: "#1976d2", fontWeight: "bold" }}>
-									{venue.name}
-								</Typography>
-								<Typography color="text.secondary" sx={{ fontSize: "1.1rem" }}>
-									{venue.city}
-								</Typography>
-								<Typography color="text.secondary" sx={{ fontSize: "1.1rem" }}>
-									Starting at ₹{venue.startingPricePerHour} /hr
-								</Typography>
-								<Typography variant="subtitle1" sx={{ mt: 2, color: "#1976d2", fontWeight: "bold" }}>
-									Courts:
-								</Typography>
-								<List>
-									{(venue.courts || []).map((court: any) => {
-										const booking = userBookings.find((b) => b.courtId === court.id);
-										const reviewInfo = courtReviews[court.id] || {};
-										return (
-											<>
-												<ListItem
-													key={court.id}
-													sx={{
-														display: "flex",
-														alignItems: "center",
-														background: booking ? "#e3f2fd" : "inherit",
-														borderRadius: "8px",
-														mb: 1,
-													}}
-												>
-													<ListItemText
-														primary={
-															<span style={{ fontWeight: "bold", color: booking ? "#1976d2" : "#333" }}>
-																{court.name} ({court.sport})
-															</span>
-														}
-														secondary={
-															<span style={{ color: booking ? "#1976d2" : "#555" }}>
-																Price: ₹{court.pricePerHour}/hr
-															</span>
-														}
-													/>
-													<Box sx={{ ml: 2, minWidth: 120 }}>
-														<Typography variant="body2" sx={{ color: "#ffa726", fontWeight: "bold" }}>
-															Avg Rating: {reviewInfo.avgRating ? reviewInfo.avgRating.toFixed(1) : "N/A"}
-														</Typography>
-														<button
-															style={{
-																marginTop: 4,
-																padding: "4px 12px",
-																borderRadius: "6px",
-																background: "#1976d2",
-																color: "#fff",
-																border: "none",
-																fontWeight: "bold",
-																fontSize: "0.9rem",
-																cursor: "pointer",
-															}}
-															onClick={() => {
-																fetchCourtReviews(venue.id, court.id);
-																setViewReviewsCourtId(viewReviewsCourtId === court.id ? null : court.id);
-															}}
-														>
-															{viewReviewsCourtId === court.id ? "Hide Reviews" : "View Reviews"}
-														</button>
-													</Box>
-													{booking ? (
-														<Box sx={{ ml: 2, p: 2, background: "#bbdefb", borderRadius: "8px", minWidth: 220 }}>
-															<Typography variant="body2" sx={{ color: "#1976d2", fontWeight: "bold" }}>
-																Your Booking
+					{[...venues]
+						.sort((a, b) => {
+							if (priceSort === "low") return a.startingPricePerHour - b.startingPricePerHour;
+							if (priceSort === "high") return b.startingPricePerHour - a.startingPricePerHour;
+							return 0;
+						})
+						.map((venue) => (
+							<Card key={venue.id} sx={{ borderRadius: "16px", boxShadow: 2, background: "#fff" }}>
+								<CardContent>
+									<Typography variant="h5" sx={{ color: "#1976d2", fontWeight: "bold" }}>
+										{venue.name}
+									</Typography>
+									<Typography color="text.secondary" sx={{ fontSize: "1.1rem" }}>
+										{venue.city}
+									</Typography>
+									<Typography color="text.secondary" sx={{ fontSize: "1.1rem" }}>
+										Starting at ₹{venue.startingPricePerHour} /hr
+									</Typography>
+									<Typography variant="subtitle1" sx={{ mt: 2, color: "#1976d2", fontWeight: "bold" }}>
+										Courts:
+									</Typography>
+									<List>
+										{(venue.courts || []).map((court: any) => {
+											const booking = userBookings.find((b) => b.courtId === court.id);
+											const reviewInfo = courtReviews[court.id] || {};
+											return (
+												<>
+													<ListItem
+														key={court.id}
+														sx={{
+															display: "flex",
+															alignItems: "center",
+															background: booking ? "#e3f2fd" : "inherit",
+															borderRadius: "8px",
+															mb: 1,
+														}}
+													>
+														<ListItemText
+															primary={
+																<span style={{ fontWeight: "bold", color: booking ? "#1976d2" : "#333" }}>
+																	{court.name} ({court.sport})
+																</span>
+															}
+															secondary={
+																<span style={{ color: booking ? "#1976d2" : "#555" }}>
+																	Price: ₹{court.pricePerHour}/hr
+																</span>
+															}
+														/>
+														<Box sx={{ ml: 2, minWidth: 120 }}>
+															<Typography variant="body2" sx={{ color: "#ffa726", fontWeight: "bold" }}>
+																Avg Rating: {reviewInfo.avgRating ? reviewInfo.avgRating.toFixed(1) : "N/A"}
 															</Typography>
-															<Typography variant="body2">
-																Start: {new Date(booking.startsAt).toLocaleString()}
-															</Typography>
-															<Typography variant="body2">End: {new Date(booking.endsAt).toLocaleString()}</Typography>
-															<Typography variant="body2">Status: {booking.status}</Typography>
-															<Typography variant="body2">Total: ₹{booking.totalPrice}</Typography>
 															<button
 																style={{
-																	marginTop: 8,
-																	padding: "6px 16px",
-																	borderRadius: "8px",
-																	background: "#ffa726",
+																	marginTop: 4,
+																	padding: "4px 12px",
+																	borderRadius: "6px",
+																	background: "#1976d2",
 																	color: "#fff",
 																	border: "none",
 																	fontWeight: "bold",
-																	fontSize: "0.95rem",
+																	fontSize: "0.9rem",
 																	cursor: "pointer",
 																}}
-																onClick={() => handleOpenReviewDialog(court, venue)}
+																onClick={() => {
+																	fetchCourtReviews(venue.id, court.id);
+																	setViewReviewsCourtId(viewReviewsCourtId === court.id ? null : court.id);
+																}}
 															>
-																{reviewInfo.reviews && reviewInfo.reviews.some((r) => r.userId === booking.userId)
-																	? "Edit Review"
-																	: "Submit Review"}
+																{viewReviewsCourtId === court.id ? "Hide Reviews" : "View Reviews"}
 															</button>
 														</Box>
-													) : (
-														<button
-															style={{
-																marginLeft: "16px",
-																padding: "10px 24px",
-																borderRadius: "8px",
-																background: "linear-gradient(90deg,#1976d2 0%,#42a5f5 100%)",
-																color: "#fff",
-																border: "none",
-																fontWeight: "bold",
-																fontSize: "1rem",
-																cursor: "pointer",
-																boxShadow: "0 2px 8px rgba(25,118,210,0.15)",
-																transition: "background 0.3s",
-															}}
-															onClick={() => setBookingDialog({ open: true, court, venue })}
-														>
-															Book
-														</button>
-													)}
-												</ListItem>
-												{viewReviewsCourtId === court.id && reviewInfo.reviews && (
-													<Box sx={{ ml: 4, mb: 2, p: 2, background: "#f5f5f5", borderRadius: "8px" }}>
-														<Typography variant="subtitle2" sx={{ color: "#1976d2", fontWeight: "bold" }}>
-															Reviews:
-														</Typography>
-														{reviewInfo.reviews.length === 0 ? (
-															<Typography variant="body2">No reviews yet.</Typography>
-														) : (
-															reviewInfo.reviews.map((r: any) => (
-																<Box
-																	key={r.id}
-																	sx={{ mb: 1, p: 1, background: "#fff", borderRadius: "6px", boxShadow: 1 }}
+														{booking ? (
+															<Box sx={{ ml: 2, p: 2, background: "#bbdefb", borderRadius: "8px", minWidth: 220 }}>
+																<Typography variant="body2" sx={{ color: "#1976d2", fontWeight: "bold" }}>
+																	Your Booking
+																</Typography>
+																<Typography variant="body2">
+																	Start: {new Date(booking.startsAt).toLocaleString()}
+																</Typography>
+																<Typography variant="body2">
+																	End: {new Date(booking.endsAt).toLocaleString()}
+																</Typography>
+																<Typography variant="body2">Status: {booking.status}</Typography>
+																<Typography variant="body2">Total: ₹{booking.totalPrice}</Typography>
+																<button
+																	style={{
+																		marginTop: 8,
+																		padding: "6px 16px",
+																		borderRadius: "8px",
+																		background: "#ffa726",
+																		color: "#fff",
+																		border: "none",
+																		fontWeight: "bold",
+																		fontSize: "0.95rem",
+																		cursor: "pointer",
+																	}}
+																	onClick={() => handleOpenReviewDialog(court, venue)}
 																>
-																	<Typography variant="body2" sx={{ fontWeight: "bold", color: "#1976d2" }}>
-																		{r.user?.fullName || "User"}
-																	</Typography>
-																	<Typography variant="body2">Rating: {r.rating}</Typography>
-																	<Typography variant="body2">{r.comment}</Typography>
-																</Box>
-															))
+																	{reviewInfo.reviews && reviewInfo.reviews.some((r) => r.userId === booking.userId)
+																		? "Edit Review"
+																		: "Submit Review"}
+																</button>
+															</Box>
+														) : (
+															<button
+																style={{
+																	marginLeft: "16px",
+																	padding: "10px 24px",
+																	borderRadius: "8px",
+																	background: "linear-gradient(90deg,#1976d2 0%,#42a5f5 100%)",
+																	color: "#fff",
+																	border: "none",
+																	fontWeight: "bold",
+																	fontSize: "1rem",
+																	cursor: "pointer",
+																	boxShadow: "0 2px 8px rgba(25,118,210,0.15)",
+																	transition: "background 0.3s",
+																}}
+																onClick={() => setBookingDialog({ open: true, court, venue })}
+															>
+																Book
+															</button>
 														)}
-													</Box>
-												)}
-											</>
-										);
-									})}
-									{(venue.courts || []).length === 0 && (
-										<ListItem>
-											<ListItemText primary="No courts available." />
-										</ListItem>
-									)}
-								</List>
-							</CardContent>
-						</Card>
-					))}
+													</ListItem>
+													{viewReviewsCourtId === court.id && reviewInfo.reviews && (
+														<Box sx={{ ml: 4, mb: 2, p: 2, background: "#f5f5f5", borderRadius: "8px" }}>
+															<Typography variant="subtitle2" sx={{ color: "#1976d2", fontWeight: "bold" }}>
+																Reviews:
+															</Typography>
+															{reviewInfo.reviews.length === 0 ? (
+																<Typography variant="body2">No reviews yet.</Typography>
+															) : (
+																reviewInfo.reviews.map((r: any) => (
+																	<Box
+																		key={r.id}
+																		sx={{ mb: 1, p: 1, background: "#fff", borderRadius: "6px", boxShadow: 1 }}
+																	>
+																		<Typography variant="body2" sx={{ fontWeight: "bold", color: "#1976d2" }}>
+																			{r.user?.fullName || "User"}
+																		</Typography>
+																		<Typography variant="body2">Rating: {r.rating}</Typography>
+																		<Typography variant="body2">{r.comment}</Typography>
+																	</Box>
+																))
+															)}
+														</Box>
+													)}
+												</>
+											);
+										})}
+										{(venue.courts || []).length === 0 && (
+											<ListItem>
+												<ListItemText primary="No courts available." />
+											</ListItem>
+										)}
+									</List>
+								</CardContent>
+							</Card>
+						))}
 				</Stack>
 				{bookingDialog.open && bookingDialog.court && (
 					<Card
